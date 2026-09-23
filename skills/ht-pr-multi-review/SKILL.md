@@ -38,7 +38,7 @@ The script invokes these configurations:
 
 - Claude Code: `claude --permission-mode auto -p --model claude-opus-4-7 --effort high`, once
   for each of `/review <PR_URL>`, `/security-review <PR_URL>`, and `/code-review <PR_URL>`.
-- Codex: `codex --yolo review --base <remote-base>` with `model="gpt-5.6-sol"`,
+- Codex: `codex --yolo review --base <remote-base>` with `model="gpt-6-sol"`,
   `model_reasoning_effort="high"`, and `service_tier="priority"` (the current CLI's Fast tier).
 - Summary: an ephemeral `codex --yolo exec` call with the same Codex model, effort, and tier.
 

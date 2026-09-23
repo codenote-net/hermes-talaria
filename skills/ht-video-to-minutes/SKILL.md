@@ -24,7 +24,7 @@ decisions, owners, or due dates that are absent from the recording.
 
 - Include `--yolo` before the subcommand in every Codex CLI model invocation.
 - Include `--permission-mode auto` in every Claude CLI model invocation.
-- Run the main workflow in Codex CLI with the exact model ID `gpt-5.6-luna`. It owns input
+- Run the main workflow in Codex CLI with the exact model ID `gpt-6-luna`. It owns input
   collection, file handling, media extraction, transcription orchestration, verification, and
   the final result returned to Hermes.
 - Run only the transcript-to-minutes drafting step with Sonnet 5 (`claude-sonnet-5`) at reasoning
@@ -34,10 +34,10 @@ decisions, owners, or due dates that are absent from the recording.
   separate non-interactive Claude CLI process with an explicit model instead.
 
 Use the dedicated Codex CLI model option; do not rewrite the user's global Codex configuration
-and do not describe the model as the ambiguous phrase "gpt-5.6 in Luna mode":
+and do not describe the model as the ambiguous phrase "gpt-6 in Luna mode":
 
 ```bash
-codex --yolo exec --model gpt-5.6-luna \
+codex --yolo exec --model gpt-6-luna \
   --config model_reasoning_effort='"low"' \
   --ephemeral --skip-git-repo-check \
   -C "<ABSOLUTE_OUTPUT_DIR>" \
@@ -192,7 +192,7 @@ default for normal use; choose a distinct ID only for an intentionally independe
 7. **Verify with the main model.** Start a second Codex CLI pass with the exact same model ID:
 
    ```bash
-   codex --yolo exec --model gpt-5.6-luna \
+   codex --yolo exec --model gpt-6-luna \
      --config model_reasoning_effort='"low"' \
      --ephemeral --skip-git-repo-check \
      -C "<ABSOLUTE_OUTPUT_DIR>" \
@@ -253,8 +253,8 @@ default for normal use; choose a distinct ID only for an intentionally independe
    its global delegation override affects unrelated tasks. Use Claude CLI with `--model` instead.
 9. **Silently falling back from Sonnet 5.** Treat unavailable Claude CLI authentication as a blocked
    routing requirement and tell the user to run `claude auth`.
-10. **Passing `gpt-5.6` plus a prose "Luna mode" instruction.** Codex CLI exposes Luna as the
-    model ID `gpt-5.6-luna`; pass it with `--model` or `-m` for every Luna run.
+10. **Passing `gpt-6` plus a prose "Luna mode" instruction.** Codex CLI exposes Luna as the
+    model ID `gpt-6-luna`; pass it with `--model` or `-m` for every Luna run.
 11. **Running Codex in a non-Git output directory without an override.** Meeting artifacts often
     live outside a repository. Pass `--skip-git-repo-check` so the one-shot run can start there.
 12. **Relying on the user's default reasoning level.** Pass
@@ -278,6 +278,6 @@ For a real recording, verification is complete only when all checks pass:
 - Transcription logs `Transcription saved to` and produces a non-empty transcript.
 - Capture count is recorded, including zero.
 - The Markdown deliverable exists and does not contain unsupported claims.
-- The run reports `gpt-5.6-luna` for orchestration and verification, and
+- The run reports `gpt-6-luna` for orchestration and verification, and
   `claude-sonnet-5` with reasoning effort `medium` for drafting.
 - Both Luna execution logs report `reasoning effort: low`.

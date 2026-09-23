@@ -19,7 +19,7 @@ PR_RE = re.compile(
     r"^https://github\.com/(?P<owner>[A-Za-z0-9_.-]+)/(?P<repo>[A-Za-z0-9_.-]+)/pull/(?P<number>[1-9][0-9]*)/?(?:[?#].*)?$"
 )
 CLAUDE_MODEL = "claude-opus-4-7"
-CODEX_MODEL = "gpt-5.6-sol"
+CODEX_MODEL = "gpt-6-sol"
 
 
 def run(command: Sequence[str], timeout: int, cwd: Path) -> tuple[int, str]:
