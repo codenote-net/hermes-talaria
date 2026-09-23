@@ -240,7 +240,7 @@ inspection checkout:
 
 ```text
 codex exec --ephemeral --sandbox read-only \
-  -c model='"gpt-5.6-sol"' \
+  -c model='"gpt-6-sol"' \
   -c model_reasoning_effort='"low"' \
   -c service_tier='"fast"' \
   '<PROMPT BEGINNING WITH /review>'

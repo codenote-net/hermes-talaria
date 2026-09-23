@@ -41,10 +41,10 @@ Use the canonical schemas and official initializer, baseline capture, and pre-la
 
 Use these settings verbatim on every applicable child invocation:
 
-- **Codex implementation and fixes**: `model="gpt-5.6-sol"`,
+- **Codex implementation and fixes**: `model="gpt-6-sol"`,
   `model_reasoning_effort="low"`, `service_tier="fast"`; use `/goal` followed by the
   parent-provided issue snapshot.
-- **Codex local review**: `model="gpt-5.6-sol"`, `model_reasoning_effort="low"`,
+- **Codex local review**: `model="gpt-6-sol"`, `model_reasoning_effort="low"`,
   `service_tier="fast"`; use `/review`.
 - **Claude Code local code review**: model `Sonnet 5` (`claude-sonnet-5`), reasoning effort
   `medium`; use `/code-review`.
@@ -66,7 +66,7 @@ high-priority findings without widening scope.
 Apply Codex settings per process; never edit global configuration. Use this command shape:
 
 ```bash
-codex --yolo exec --ephemeral -c model='"gpt-5.6-sol"' \
+codex --yolo exec --ephemeral -c model='"gpt-6-sol"' \
   -c model_reasoning_effort='"low"' -c service_tier='"fast"' '<PROMPT>'
 ```
 
