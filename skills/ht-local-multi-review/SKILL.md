@@ -32,8 +32,10 @@ Run exactly these three independent reviews:
 2. Claude Code `/security-review`
 3. Codex `/review`
 
-Use the configured Claude Code and Codex models unless the user supplied model settings. Do not
-edit global CLI configuration. Invoke Claude Code non-interactively with
+Use Claude Sonnet 5.5 (`claude-sonnet-5-5`) with reasoning effort `medium` for both Claude Code
+reviews and GPT-6 Sol (`gpt-6-sol`) with reasoning effort `low` and service tier `fast` for the
+Codex review, unless the user explicitly supplied different model settings. Apply these settings
+per process; do not edit global CLI configuration. Invoke Claude Code non-interactively with
 `--no-session-persistence` and `--permission-mode plan`, and explicitly disallow its file-editing
 tools. Invoke Codex with `exec --ephemeral --sandbox read-only`; begin its prompt with `/review`.
 Do not use `--yolo`, `--dangerously-skip-permissions`, `danger-full-access`, or a writable sandbox.
@@ -108,10 +110,14 @@ Recommended command constraints are:
 
 ```text
 claude --permission-mode plan -p --no-session-persistence \
+  --model claude-sonnet-5-5 --effort medium \
   --disallowedTools Edit,Write,NotebookEdit \
   '<PROMPT BEGINNING WITH THE REQUIRED SLASH COMMAND>'
 
 codex exec --ephemeral --sandbox read-only \
+  -c model='"gpt-6-sol"' \
+  -c model_reasoning_effort='"low"' \
+  -c service_tier='"fast"' \
   '<PROMPT BEGINNING WITH /review>'
 ```
 
