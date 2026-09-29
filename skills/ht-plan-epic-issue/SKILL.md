@@ -246,7 +246,7 @@ codex exec --ephemeral --sandbox read-only \
   '<PROMPT BEGINNING WITH /review>'
 
 claude --permission-mode plan -p \
-  --model claude-opus-4-7 --effort high \
+  --model claude-opus-5-5 --effort high \
   --no-session-persistence \
   --disallowedTools Edit Write NotebookEdit -- \
   '<EPIC-DECOMPOSITION REVIEW PROMPT>'
