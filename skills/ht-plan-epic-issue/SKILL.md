@@ -196,8 +196,9 @@ Every planned work item on a fresh run has disposition `create`: create one new 
 reviewed sub-issue. If an equivalent open or closed Issue exists outside this run, do not reuse it
 automatically and do not create a duplicate. Record it as `existing-conflict`, present the candidate
 to the user, and stop. Reuse or attachment is permitted only after explicit user approval, followed
-by a new frozen decomposition revision and two clean reviews. An Issue created earlier in the same
-partially completed run may be recovered from the mutation ledger as `created-in-this-run`; that is
+by a new frozen decomposition revision and two completed reviews with zero unresolved P0/P1
+findings. An Issue created earlier in the same partially completed run may be recovered from the
+mutation ledger as `created-in-this-run`; that is
 idempotent recovery of the requested new Issue, not substitution with unrelated existing work.
 
 Classify every native child present in the initial snapshot as `existing-retained` unless it is an
@@ -283,16 +284,49 @@ repository accuracy, issue boundaries, dependency completeness, cycle freedom, e
 acceptance observability, validation, security/privacy, compatibility, migration, rollout, rollback,
 and duplicate handling. Style preferences are not findings.
 
+### Automated review revision policy
+
+Apply this policy only to findings produced by the automated Codex and Claude Code decomposition
+reviewers. Normalize their severity labels as follows: `critical` or `P0` is P0, `high` or `P1` is
+P1, `medium` or `P2` is P2, and `low` or `P3` is P3. Only P0 and P1 findings require a decomposition
+revision and block convergence.
+
+Preserve P2 and P3 findings in the raw reports and private revision log, but do not change the epic
+plan, Issue manifest, dependency graph, work order, title, or body templates solely to address them,
+and do not keep the review loop open because they remain. A valid `findings` report containing only
+P2/P3 findings can therefore satisfy the review gate; a literal `clean` verdict is not required. A
+missing or ambiguous severity makes the report incomplete rather than P0/P1; never promote an
+ambiguous finding merely to force a revision.
+
+Call a revision `P0/P1-cleared` only when both complete, valid review reports cover that exact
+revision hash and target SHA, contain zero unresolved P0/P1 findings, and leave no material open
+question.
+
+This policy does not waive the user's requirements, confirmed repository facts, required manifest
+fields, graph invariants, GitHub parent and depth limits, duplicate constraints, mutation safety, or
+material open questions. Correct violations of those planning inputs as an orchestrator
+responsibility without reclassifying a P2/P3 reviewer finding. A user may explicitly adopt a P2/P3
+recommendation as a new requirement; after that decision, treat it as user-approved scope rather
+than automated-review remediation.
+
 Capture stdout, stderr, numeric exit status, timeout state, reviewer identity, revision hash, and
 target SHA separately. Reject a report with a wrong or missing revision hash or target SHA. Preserve
 raw reports without exposing one reviewer to the other.
 
 After both valid reports finish, evaluate every finding against the request and repository evidence.
-Apply every valid finding of every severity. Reject a finding only with recorded contrary evidence.
-Resolve repository-answerable questions read-only; ask the user only for material product choices.
-Freeze a complete new revision and launch two new sessions. Convergence requires both reviewers to
-return valid `clean` reports for the same revision hash and target SHA and every accepted prior
-finding to remain represented. Allow at most ten rounds; the limit is a stop, never approval.
+Normalize every finding under the automated review revision policy. Apply every valid P0/P1 finding
+to the next decomposition revision and record each P2/P3 finding as report-only without changing the
+decomposition solely for it. Reject a P0/P1 finding only with recorded contrary evidence. Resolve
+repository-answerable questions read-only; ask the user only for material product choices.
+
+If an accepted P0/P1 finding, resolved question, user-approved scope change, or independently
+required planning correction changes the decomposition, freeze a complete new revision and launch
+two new sessions. If only P2/P3 findings remain and no planning input requires a change, do not
+create an unnecessary revision. Convergence requires both reviewers to return complete, valid
+reports for the same revision hash and target SHA, both reports to contain zero unresolved P0/P1
+findings, no material open question to remain, and every accepted prior P0/P1 finding to remain
+represented. Retain every P2/P3 finding for final reporting. Allow at most ten rounds; the limit is
+a stop, never approval.
 
 ## Phase 5: Pre-mutation reconciliation
 
@@ -304,17 +338,17 @@ Immediately before creating anything:
    snapshot;
 4. stop for user reconciliation if the epic changed materially;
 5. require the current native-child ID set, order baseline, ancestor chain, nesting depth, duplicate
-   inventory, and every planned disposition to equal the clean-reviewed revision;
+   inventory, and every planned disposition to equal the P0/P1-cleared revision;
 6. verify the final count still fits GitHub's current parent limit and depth limit; and
 7. freeze a mutation manifest containing exact desired order, titles, body hashes, dispositions, and
    known Issue URLs/IDs.
 
 A duplicate check is not title equality alone. Compare goal, scope, acceptance criteria, repository
 areas, and lifecycle state. If any disposition, Issue URL/ID, title/body, dependency edge, intended
-order, duplicate decision, ancestor/depth fact, or existing native-child set changed after clean
-review, do not mutate. Return to Phase 2 or Phase 3 as applicable, freeze a new revision, and obtain
-two new clean reviews. Pre-mutation reconciliation validates the reviewed manifest; it never changes
-its meaning directly.
+order, duplicate decision, ancestor/depth fact, or existing native-child set changed after the
+P0/P1-cleared review, do not mutate. Return to Phase 2 or Phase 3 as applicable, freeze a new
+revision, and obtain two new completed reviews with zero unresolved P0/P1 findings. Pre-mutation
+reconciliation validates the reviewed manifest; it never changes its meaning directly.
 
 ## Phase 6: Create, attach, and order
 
@@ -348,7 +382,7 @@ and unverified items. Do not close or detach successful Issues as automatic roll
 partial state for deliberate recovery.
 
 After all items are attached and immediately before the first priority mutation, re-fetch every page
-of native sub-issues. Require its ID set to equal exactly the clean-reviewed initial set plus Issues
+of native sub-issues. Require its ID set to equal exactly the P0/P1-cleared initial set plus Issues
 verified as created or attached by this run. If another actor added, removed, or moved an item, stop
 without beginning ordering and report the concurrent change.
 
@@ -369,22 +403,23 @@ Re-fetch and verify all remote state rather than trusting mutation responses:
 - returned sub-issue order exactly equals the frozen topological order;
 - each Issue created by this run is open and has the expected parent, while every retained existing
   Issue preserves its reviewed state and parent;
-- each newly created title equals the clean-reviewed revision and each final body exactly equals
-  the deterministically URL-resolved form of its clean-reviewed template;
+- each newly created title equals the P0/P1-cleared revision and each final body exactly equals
+  the deterministically URL-resolved form of its P0/P1-cleared template;
 - every dependency URL resolves to the intended Issue after planning keys are replaced;
 - no created Issue is unattached and no unintended Issue was attached;
 - no Issue was moved from another parent; and
-- both clean review reports match the final decomposition hash and target SHA.
+- both review reports match the final decomposition hash and target SHA and contain zero unresolved
+  P0/P1 findings.
 
 For new Issue bodies, replace planning keys in `Requires` and `Enables` only after URLs exist.
 Construct every final URL-resolved body by applying only that deterministic substitution to the
-clean-reviewed template. Record separately in the mutation ledger: each reviewed template hash, the
+P0/P1-cleared template. Record separately in the mutation ledger: each reviewed template hash, the
 complete planning-key-to-Issue-URL mapping and its hash, and each rendered final-body hash. Update
 each newly created Issue once with
 `gh issue edit <issue-url> --body-file <resolved-body-file>`, and repeat exact body read-back
-verification. Reviewers approve both the templates and this substitution rule; no other post-review
-body change is permitted. Do not leave temporary keys or guessed future Issue numbers in published
-bodies.
+verification. Both review reports must cover the templates and this substitution rule with zero
+unresolved P0/P1 findings; no other post-review body change is permitted. Do not leave temporary
+keys or guessed future Issue numbers in published bodies.
 
 ## Final output
 
@@ -393,7 +428,8 @@ Respond in the user's language. On success, report:
 - the epic URL first;
 - repository and frozen target SHA;
 - final decomposition revision and SHA-256;
-- Codex and Claude Code clean-review status;
+- Codex and Claude Code review status and P0/P1 count;
+- every unresolved P2/P3 finding, or `None`;
 - ordered sub-issue table with position, URL, title, disposition, prerequisites, and parallel-ready
   group;
 - exact native parent/order verification result; and
