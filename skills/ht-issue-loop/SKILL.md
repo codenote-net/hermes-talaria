@@ -46,14 +46,14 @@ Use these settings verbatim on every applicable child invocation:
   parent-provided issue snapshot.
 - **Codex local review**: `model="gpt-6-sol"`, `model_reasoning_effort="low"`,
   `service_tier="fast"`; use `/review`.
-- **Claude Code local code review**: model `Sonnet 5` (`claude-sonnet-5`), reasoning effort
+- **Claude Code local code review**: model `Sonnet 5.5` (`claude-sonnet-5-5`), reasoning effort
   `medium`; use `/code-review`.
-- **Claude Code local security review**: model `Sonnet 5` (`claude-sonnet-5`), reasoning effort
+- **Claude Code local security review**: model `Sonnet 5.5` (`claude-sonnet-5-5`), reasoning effort
   `medium`; use `/security-review`.
-- **Claude Code PR review**: model `Sonnet 5` (`claude-sonnet-5`), reasoning effort `medium`; use
+- **Claude Code PR review**: model `Sonnet 5.5` (`claude-sonnet-5-5`), reasoning effort `medium`; use
   `/review #<pr-number>`.
-- **Claude Code fresh-worktree behavior verification**: model `Sonnet 5`
-  (`claude-sonnet-5`), reasoning effort `medium`; perform the verification from a fresh worktree.
+- **Claude Code fresh-worktree behavior verification**: model `Sonnet 5.5`
+  (`claude-sonnet-5-5`), reasoning effort `medium`; perform the verification from a fresh worktree.
 
 Pass `--yolo` before every Codex `exec` or `review` subcommand. When a Codex review artifact must
 satisfy a strict machine-readable output contract, prefer
@@ -75,15 +75,15 @@ these command shapes:
 
 ```bash
 # Local code review
-claude --permission-mode auto -p --model claude-sonnet-5 --effort medium \
+claude --permission-mode auto -p --model claude-sonnet-5-5 --effort medium \
   --no-session-persistence '<CODE_REVIEW_PROMPT>'
 
 # Local security review and PR review
-claude --permission-mode auto -p --model claude-sonnet-5 --effort medium \
+claude --permission-mode auto -p --model claude-sonnet-5-5 --effort medium \
   --no-session-persistence '<SECURITY_OR_PR_REVIEW_PROMPT>'
 
 # Fresh-worktree behavior verification
-claude --permission-mode auto -p --model claude-sonnet-5 --effort medium \
+claude --permission-mode auto -p --model claude-sonnet-5-5 --effort medium \
   --no-session-persistence '<BEHAVIOR_VERIFICATION_PROMPT>'
 ```
 
