@@ -72,7 +72,7 @@ at a documented fail-closed condition, or after the verified checklist is comple
 
 On re-entry to a run with a PR, read the current PR head and reconcile all five review sources for
 that exact SHA. Require numeric exits, substantive reports, side-effect checks, and verifier
-command evidence. If all five are complete with zero high-priority findings, immediately update
+command evidence. If all five are complete with zero P0/P1 findings, immediately update
 the PR body, mark it ready, perform the preliminary Human handoff, and inspect CI. If CI is already
 terminal green for the reviewed SHA, verify the complete check set and finish the green-CI handoff
 without launching another poller. Never rerun a review merely because its notification was lost.

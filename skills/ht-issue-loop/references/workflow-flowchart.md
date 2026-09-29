@@ -41,7 +41,7 @@ flowchart TD
     S0["Stop: orchestration failure<br/>Preserve and report evidence"]:::stop
 
     R0["Three local reviews on exact diff<br/>Codex review + Claude code + security"]:::reviewer
-    R1{"Any high-priority finding?"}:::decision
+    R1{"Any P0/P1 finding?"}:::decision
     L0{"Shared fix count<br/>below 10?"}:::decision
     W1["Codex restricted local fix worker"]:::worker
     F0["Fix-limit at-mention progress comment<br/>PR if created; otherwise issue"]:::stop
@@ -53,7 +53,7 @@ flowchart TD
     G1["Sign off and verify<br/>exact pushed HEAD"]:::orchestrator
     O11["Open draft PR"]:::orchestrator
     R2["Two post-publication checks on exact PR head<br/>PR review + fresh-worktree behavior"]:::reviewer
-    R3{"Three retained local reviews + two post-publication checks<br/>complete with zero high findings?"}:::decision
+    R3{"Three retained local reviews + two post-publication checks<br/>complete with zero P0/P1 findings?"}:::decision
     L1{"Shared fix count<br/>below 10?"}:::decision
     W2["Codex restricted PR or CI fix worker"]:::worker
     O9["Reconcile worker, safety check, and validation<br/>Hermes signs, commits, durably pushes and reconciles"]:::orchestrator
@@ -68,7 +68,7 @@ flowchart TD
     C4{"PR head still equals<br/>reviewed and green-CI SHA?"}:::decision
 
     O7["Immediately update and verify PR body<br/>Mark PR ready"]:::orchestrator
-    O8["At-mention Human<br/>Five reviews passed; CI monitoring continues"]:::orchestrator
+    O8["At-mention Human<br/>Five reviews P0/P1-cleared; CI monitoring continues"]:::orchestrator
     H2["Human begins review<br/>Waits for final green-CI handoff before merge"]:::human
     O10["Update CI result and at-mention Human again<br/>All applicable CI is green"]:::orchestrator
     H3["Human performs final review<br/>and decides whether to merge"]:::human
@@ -147,7 +147,8 @@ flowchart TD
    is not evidence.
 10. In required mode, every pushed commit is signed off again before reviews run for that HEAD.
 11. CI repairs pass through the same conditional publication path.
-12. Human review starts immediately after five clean reviews; CI monitoring continues in parallel.
+12. Human review starts immediately after all five reviews complete with zero P0/P1 findings; CI
+    monitoring continues in parallel. P2/P3 findings remain report-only and do not block this gate.
 13. The Human receives a second at-mention only when CI is green for that same reviewed SHA.
 14. The workflow never merges or closes the issue; the final decision belongs to the Human.
 15. Canonical pre-launch validation happens before every worker; rejection durably proves that
