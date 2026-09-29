@@ -1,6 +1,6 @@
 ---
 name: ht-issue-loop
-description: Drive one GitHub issue from its issue URL through autonomous implementation, validation, iterative Codex and Claude Code reviews, high-priority finding fixes, draft PR verification, and a ready-for-review pull request without merging. Use when given a GitHub issue URL and asked to implement it fully, loop until review gates are clean, or produce a human-reviewable PR.
+description: Drive one GitHub issue from its issue URL through autonomous implementation, validation, iterative Codex and Claude Code reviews, P0/P1 finding fixes, draft PR verification, and a ready-for-review pull request without merging. Use when given a GitHub issue URL and asked to implement it fully, loop until review gates are P0/P1-clean, or produce a human-reviewable PR.
 ---
 
 # Issue Implementation Loop
@@ -61,7 +61,7 @@ satisfy a strict machine-readable output contract, prefer
 frontends may post-process model output and can move, reformat, or omit required markers such as
 the standalone `High-priority findings: N` line. Treat a missing marker as `incomplete_report`;
 do not weaken the artifact schema or accept the output ad hoc. Codex fix workers may fix only
-high-priority findings without widening scope.
+P0/P1 findings without widening scope.
 
 Apply Codex settings per process; never edit global configuration. Use this command shape:
 
@@ -91,6 +91,24 @@ Give every child the parent-captured issue snapshot and explicitly forbid it fro
 issue again. Give every reviewer the issue URL for provenance, current branch or PR target,
 repository instructions, and a request to label each finding `critical`, `high`, `medium`, or
 `low`.
+
+## Automated review remediation policy
+
+Apply this policy only to findings produced by the automated Codex and Claude Code reviewers.
+Normalize their severity labels as follows: `critical` or `P0` is P0, `high` or `P1` is P1,
+`medium` or `P2` is P2, and `low` or `P3` is P3. Only P0 and P1 findings are remediation findings:
+only they may enter a fix-worker prompt, consume the shared fix count, or block a review gate.
+
+Preserve P2 and P3 findings in their original review artifacts and report them in the PR body and
+final Human handoff, but do not change files solely to address them and do not keep a review loop
+open because they remain. A missing or ambiguous severity makes the report incomplete and requires
+the classification procedure below; never promote an ambiguous finding to P0 or P1 merely to force
+remediation. Map an equivalent label such as `blocker` only when the reviewer's stated impact makes
+the equivalence explicit.
+
+This policy does not waive the Issue's requirements or acceptance criteria, repository-required
+validation, behavior verification, or CI gates. Handle failures from those sources under their own
+workflow rules even when no automated reviewer assigned them P0 or P1 severity.
 
 ## Single-fetch issue snapshot
 
@@ -323,20 +341,22 @@ the worker to infer the boundary from the surrounding workflow.
    Retry with a narrower read-only prompt when appropriate, but never count a partial artifact as
    clean. Run independent read-only reviews in parallel only when they cannot mutate the same
    worktree. A failed or incomplete review is not a clean result.
-12. Normalize priorities. Treat `critical`, `high`, `P0`, and `P1` (and explicit equivalents such
-   as blocker or severe exploitable vulnerability) as high priority. Do not promote ambiguous
-   findings merely to force convergence; retain the reviewer's evidence and stated severity.
-13. If zero high-priority findings remain and every review completed, leave the local loop.
+12. Apply the automated review remediation policy: treat `critical`/`P0` and `high`/`P1` as P0/P1
+   remediation findings, while `medium`/`P2` and `low`/`P3` remain report-only. Do not promote
+   ambiguous findings merely to force convergence; retain the reviewer's evidence and stated
+   severity.
+13. If zero P0/P1 findings remain and every review completed, leave the local loop. P2/P3 findings
+   do not block convergence.
 14. Otherwise, if ten fix invocations have already completed, stop before an eleventh, summarize
    repeated and unresolved findings, preserve the branch, execute the fix-limit human handoff
    below, and ask the user to decide. Never open or ready a PR while this safety valve is active.
    If fewer than ten fixes have run, increment the shared fix count and continue.
-15. Invoke Codex with the complete high-priority findings, complete immutable issue snapshot,
+15. Invoke Codex with the complete P0/P1 findings, complete immutable issue snapshot,
     no-refetch instruction, and the same strict restrictions and report contract used by the
     implementation prompt, followed by this task instruction:
 
    ```text
-   Fix the high-priority findings from the Codex review, Claude Code review, and Claude Code
+   Fix only the P0/P1 findings from the Codex review, Claude Code review, and Claude Code
    security review. Keep scope limited to the issue and the findings. Rerun only affected
    validation, plus any repository-required final checks. Report files and exact results.
    ```
@@ -419,15 +439,15 @@ the new HEAD before running the two post-publication reviews for that HEAD.
    the primary worktree. Remove only the temporary worktree after its process has finished; retain
    its report. Treat setup, checkout, or validation failure as an incomplete gate, not zero
    findings.
-6. Aggregate high-priority counts separately for all five sources: the three retained local-review
+6. Aggregate P0/P1 counts separately for all five sources: the three retained local-review
    artifacts and the two post-publication artifacts. Require the published PR head tree to match the
-   locally reviewed candidate tree exactly. If every source completed with zero high-priority
+   locally reviewed candidate tree exactly. If every source completed with zero P0/P1
    findings for that candidate, immediately execute the ready handoff below before waiting for CI.
    Review success permits Human review to begin, but is not final completion.
 7. Otherwise apply the same shared ten-fix safety valve. Ask Codex, under the complete worker
    restrictions, completion reconciliation, and mandatory side-effect check, to fix only the
-   current high-priority findings and rerun affected validation. Then repeat the three local
-   reviews until clean. The
+   current P0/P1 findings and rerun affected validation. Then repeat the three local reviews until
+   they are P0/P1-clean. The
    orchestrator creates a signed commit and pushes it. It reapplies and verifies signoff only when
    `signoff_required=true`, then reruns PR review and fresh-worktree verification. When ten fix
    invocations have completed without convergence, stop before an eleventh and execute the
@@ -436,9 +456,9 @@ the new HEAD before running the two post-publication reviews for that HEAD.
 
 ## Ready handoff and background CI monitor
 
-After all five review sources are clean and the three locally reviewed artifacts match the exact PR
-head tree, make the PR ready immediately and hand it to the Human without waiting for external CI.
-CI remains a required final gate, runs
+After all five review sources have completed and are P0/P1-clean, and the three locally reviewed
+artifacts match the exact PR head tree, make the PR ready immediately and hand it to the Human
+without waiting for external CI. CI remains a required final gate, runs
 in parallel with Human review, and is monitored by the orchestrator in the background.
 
 ### Make the reviewed PR ready
@@ -447,9 +467,9 @@ in parallel with Human review, and is monitored by the orchestrator in the backg
    - implementation summary;
    - exact validation commands and results;
    - publication command and verified signoff contexts for the exact reviewed SHA, when required;
-   - all five review sources, target SHA or local candidate fingerprint, result, and high-priority
+   - all five review sources, target SHA or local candidate fingerprint, result, and P0/P1
      count;
-   - unresolved medium/low findings and why each remains open, or `None`;
+   - unresolved P2/P3 (`medium`/`low`) findings and why each remains open, or `None`;
    - a prominent CI status note stating that CI is still being monitored and merge must wait for
      the final green-CI handoff;
    - `Closes #<issue-number>` as its own top-level line.
@@ -464,9 +484,10 @@ in parallel with Human review, and is monitored by the orchestrator in the backg
    `<!-- ht-issue-loop-human-review-ci-pending:<reviewed-head-sha> -->` to avoid duplicates:
 
    ```text
-   @<login> All five automated reviews passed for <reviewed-head-sha>, and this PR is ready for
-   Human review. CI may still be pending and is being monitored in the background. Please begin
-   review, but wait for the final CI-green handoff before deciding to merge.
+   @<login> All five automated reviews completed with zero P0/P1 findings for
+   <reviewed-head-sha>, and this PR is ready for Human review. CI may still be pending and is being
+   monitored in the background. Please begin review, but wait for the final CI-green handoff before
+   deciding to merge.
 
    <!-- ht-issue-loop-human-review-ci-pending:<reviewed-head-sha> -->
    ```
@@ -500,8 +521,8 @@ in parallel with Human review, and is monitored by the orchestrator in the backg
 6. For actionable red, count the repair against the shared ten-fix limit and invoke Codex as a
    restricted fix worker with the immutable issue snapshot, exact CI evidence, standard report
    contract, completion reconciliation, and mandatory post-execution side-effect check. After
-   affected validation, run the three local reviews until clean. The orchestrator then creates a new
-   signed commit and pushes normally. Reapply and verify signoff only when
+   affected validation, run the three local reviews until they are P0/P1-clean. The orchestrator
+   then creates a new signed commit and pushes normally. Reapply and verify signoff only when
    `signoff_required=true`, run only the PR review and fresh-worktree behavior verification after
    publication, then refresh the ready handoff and monitor CI again.
 7. If red is not repository-actionable or required evidence is unavailable, preserve the ready
@@ -515,8 +536,9 @@ in parallel with Human review, and is monitored by the orchestrator in the backg
    `<!-- ht-issue-loop-human-review-ci-green:<reviewed-head-sha> -->`:
 
    ```text
-   @<login> CI is now green for <reviewed-head-sha>. All five automated reviews and all
-   applicable CI checks passed. Please perform the final review and decide whether to merge.
+   @<login> CI is now green for <reviewed-head-sha>. All five automated reviews completed with zero
+   P0/P1 findings, and all applicable CI checks passed. Please perform the final review and decide
+   whether to merge.
 
    <!-- ht-issue-loop-human-review-ci-green:<reviewed-head-sha> -->
    ```
@@ -541,7 +563,7 @@ completion signal. Do not create a PR solely to hold this comment.
    - phase reached (`local` or `PR`) and `10/10` fixes used;
    - branch, current HEAD SHA, and PR URL when one exists;
    - changed files and the latest validation results;
-   - each completed review artifact, its target SHA, status, and high-priority count;
+   - each completed review artifact, its target SHA, status, and P0/P1 count;
    - repeated and unresolved findings, blockers, and the exact reason convergence failed;
    - the explicit next action: the human must review the progress and decide whether to continue
      manually or start a new run.
@@ -594,8 +616,8 @@ Before declaring completion, require this hard checklist:
    direct evidence.
 2. Ask the twice-mentioned Human to perform the final review and merge decision.
 3. Return a concise report containing the issue URL, branch, PR URL, commits created by Codex,
-   `signoff_required` mode and conditional publication result for the final SHA, high-priority
-   finding count for each of the five sources, validation results, complete CI results, every
+   `signoff_required` mode and conditional publication result for the final SHA, P0/P1 finding
+   count for each of the five sources, validation results, complete CI results, every
    unresolved finding, the mentioned login, and both verified handoff comment URLs.
 
 ## Stop conditions
