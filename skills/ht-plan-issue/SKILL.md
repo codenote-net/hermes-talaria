@@ -13,7 +13,8 @@ Follow this fixed loop:
 
 1. Draft the plan.
 2. Run independent Codex and Claude Code plan reviews against the same frozen plan revision.
-3. Apply every valid finding to the plan, then return to step 2.
+3. Apply every valid P0/P1 finding to the plan, record P2/P3 findings without revising solely for
+   them, and return to step 2 only when the plan changes.
 4. Only after the review gate converges, create and verify one new Issue.
 
 The successful output is the exact Issue URL accepted by `ht-issue-loop`. Do not implement the
@@ -190,6 +191,25 @@ test and validation completeness, acceptance observability, migration/rollout/ro
 and consistency with repository instructions. Style preferences without implementation impact are
 not findings.
 
+## Automated review revision policy
+
+Apply this policy only to findings produced by the automated Codex and Claude Code plan reviewers.
+Normalize their severity labels as follows: `critical` or `P0` is P0, `high` or `P1` is P1,
+`medium` or `P2` is P2, and `low` or `P3` is P3. Only P0 and P1 findings require a plan revision
+and block convergence.
+
+Preserve P2 and P3 findings in the raw reports and private revision log, but do not change the Issue
+title or body solely to address them and do not keep the review loop open because they remain. A
+valid `findings` report containing only P2/P3 findings can therefore satisfy the review gate; a
+literal `clean` verdict is not required. A missing or ambiguous severity makes the report incomplete
+rather than P0/P1; never promote an ambiguous finding merely to force a revision.
+
+This policy does not waive the user's requirements, confirmed repository facts, the required Issue
+body contract, or material open questions. Correct violations of those planning inputs as an
+orchestrator responsibility without reclassifying a P2/P3 reviewer finding. A user may explicitly
+adopt a P2/P3 recommendation as a new requirement; after that decision, treat it as user-approved
+scope rather than automated-review remediation.
+
 Capture stdout, stderr, numeric exit status, timeout state, reviewer identity, revision hash, and
 target SHA separately. Confirm each process is terminal and fully stopped. Reject a report whose
 revision hash or target SHA is absent or wrong. Preserve raw reports without letting either
@@ -201,21 +221,28 @@ After both reports for one revision are complete, the orchestrator evaluates eve
 question against the user request and repository evidence.
 
 1. Merge only genuinely duplicate findings for decision-making while preserving both raw reports.
-2. Apply every valid critical, high, medium, and low finding to the next plan revision. A finding
-   may be rejected only when concrete repository evidence or the user's stated scope disproves it;
-   record the finding, rejection rationale, and evidence in the private revision log.
+2. Normalize every finding under the automated review revision policy. Apply every valid P0/P1
+   finding to the next plan revision. Record each P2/P3 finding as report-only in the private
+   revision log without changing the plan solely for it. A P0/P1 finding may be rejected only when
+   concrete repository evidence or the user's stated scope disproves it; record the finding,
+   rejection rationale, and evidence.
 3. Resolve repository-answerable questions through read-only inspection. If a question materially
    changes requirements and cannot be answered from available evidence, ask the user and do not
    count the round as converged.
 4. Do not silently widen scope to satisfy a reviewer. Record user-approved scope changes in the
    next revision.
-5. Freeze and hash the revised title/body, then return to step 2 with two new independent sessions.
-   Never ask a reviewer merely to inspect a patch between revisions; each reviewer receives the
-   complete current plan and reviews it from first principles.
+5. If an accepted P0/P1 finding, resolved question, user-approved scope change, or independently
+   required planning correction changes the title/body, freeze and hash the revised version, then
+   return to step 2 with two new independent sessions. Never ask a reviewer merely to inspect a
+   patch between revisions; each reviewer receives the complete current plan and reviews it from
+   first principles. If only P2/P3 findings remain and no planning input requires a change, do not
+   create an unnecessary revision.
 
-The loop converges only when both reviewers independently return valid `clean` reports for the
-same revision hash and target SHA, with no findings or open questions. The orchestrator must also
-confirm that every earlier accepted finding is represented in that final revision.
+The loop converges only when both reviewers independently return complete, valid reports for the
+same revision hash and target SHA, both reports contain zero unresolved P0/P1 findings, and no
+material open question remains. P2/P3 findings do not block convergence. The orchestrator must also
+confirm that every earlier accepted P0/P1 finding is represented in that final revision and retain
+every P2/P3 finding for final reporting.
 
 Allow at most ten review rounds. If round ten does not converge, stop without creating an Issue and
 report the latest plan, all unresolved findings or questions, failed reviewer states, and the exact
@@ -241,8 +268,9 @@ Require all of the following before reporting success:
 
 - the URL belongs to the canonical destination repository;
 - state is `OPEN`;
-- the returned title and body exactly equal the final revision reviewed clean by both agents; and
-- the recorded clean reports have the same revision hash and target SHA.
+- the returned title and body exactly equal the final revision reviewed by both agents with zero
+  unresolved P0/P1 findings; and
+- both recorded reports have the same revision hash and target SHA.
 
 If creation returns an ambiguous result or read-back verification fails, do not retry blindly: list
 matching recent Issues read-only, determine whether the first call created one, and either verify
@@ -255,7 +283,8 @@ Respond in the user's language. On success, report:
 - the verified Issue URL first;
 - repository and frozen target SHA;
 - final plan revision and SHA-256;
-- Codex and Claude Code review status for that revision;
+- Codex and Claude Code review status and P0/P1 count for that revision;
+- every unresolved P2/P3 finding, or `None`;
 - whether a new Issue was created or an existing equivalent was reused; and
 - that the URL is ready to pass to `ht-issue-loop`.
 
