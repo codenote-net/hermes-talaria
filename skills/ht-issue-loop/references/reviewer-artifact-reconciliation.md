@@ -112,7 +112,8 @@ The reconciler observes logs and repository state twice. It emits `confirmed`, `
 does not block when descendants are stopped), stable output/repository state, unchanged HEAD,
 status and Git configuration, unchanged branch, refs, and reflogs, identical full index and working-tree
 content/modes, unchanged remote branch OID and PR snapshot, intact immutable issue snapshot and
-normalization evidence, substantive nonblank output, and an explicit high-priority count.
+normalization evidence, substantive nonblank output, and an explicit `High-priority findings: N`
+count. This protocol field is the normalized P0/P1 count; P2/P3 findings remain report-only.
 
 A reviewer repeating `git add -N` on the same normalized paths is idempotent and may reconcile as
 `confirmed`. Intent-to-add on another path, ordinary staging, tracked-index changes, edits,
