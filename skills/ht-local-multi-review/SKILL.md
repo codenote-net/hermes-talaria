@@ -33,7 +33,7 @@ Run exactly these three independent reviews:
 3. Codex `/review`
 
 Use Claude Sonnet 5.5 (`claude-sonnet-5-5`) with reasoning effort `medium` for both Claude Code
-reviews and GPT-6 Sol (`gpt-6-sol`) with reasoning effort `low` and service tier `fast` for the
+reviews and GPT-6.1 Sol (`gpt-6.1-sol`) with reasoning effort `low` and service tier `fast` for the
 Codex review, unless the user explicitly supplied different model settings. Apply these settings
 per process; do not edit global CLI configuration. Invoke Claude Code non-interactively with
 `--no-session-persistence` and `--permission-mode plan`, and explicitly disallow its file-editing
@@ -115,7 +115,7 @@ claude --permission-mode plan -p --no-session-persistence \
   '<PROMPT BEGINNING WITH THE REQUIRED SLASH COMMAND>'
 
 codex exec --ephemeral --sandbox read-only \
-  -c model='"gpt-6-sol"' \
+  -c model='"gpt-6.1-sol"' \
   -c model_reasoning_effort='"low"' \
   -c service_tier='"fast"' \
   '<PROMPT BEGINNING WITH /review>'
