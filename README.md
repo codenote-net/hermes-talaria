@@ -67,6 +67,30 @@ Set `HERMES_DIR` to install into a location other than `~/.hermes`. You can also
 
 Never commit secrets to this repository.
 
+## Japan business-trip hotel research
+
+`/ht-japan-hotel-research` searches hotel official sites in Japan, Yahoo! Travel, Rakuten
+Travel, and [Jalan](https://www.jalan.net/biz/) through adaptive agent-driven browser interaction and compares prices
+with trip-destination access. It uses the current page state rather than fixed
+site-specific selectors and does not require a particular browser product.
+Browser automation must be available; it does not book rooms.
+Set `research.sites` to choose which supported sources to research:
+`[official, yahoo, rakuten]` is the default; add `jalan` to opt in.
+Unselected sites are skipped, including discovery and fallback searches.
+The list must be non-empty, unique, and contain only supported source IDs.
+
+The shareable settings template is
+[`hotel-preferences.example.yaml`](skills/ht-japan-hotel-research/templates/hotel-preferences.example.yaml).
+Copy it to `~/.config/hermes-talaria/hotel-preferences.yaml` and customize
+domestic/international budgets (including currency and tax basis), airports,
+preferred rail corridors, and an optional office. `HT_HOTEL_PREFERENCES` or an
+explicit file path can override this location. Keep actual settings and research
+reports outside Git. `hotel-preferences.yaml` and `hotel-research-results/` are
+also ignored as a safeguard; the example never contains personal settings.
+
+Provide check-in/out dates and the destination when invoking the skill. A visit
+date alone does not determine whether to search the previous or following night.
+
 ## License
 
 [MIT](LICENSE)
