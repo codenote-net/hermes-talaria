@@ -1,0 +1,47 @@
+# Copy to ~/.config/hermes-talaria/hotel-preferences.yaml (outside Git).
+# This example contains no personal itinerary, office, or actual budget.
+version: 1
+research:
+  # Allowed IDs: official, yahoo, rakuten, jalan. Non-empty, unique list.
+  # Omitted: official + yahoo + rakuten. Add jalan explicitly to include it.
+  sites: [official, yahoo, rakuten]
+budget:
+  domestic:
+    amount: null # Set your company's domestic limit.
+    currency: JPY
+    basis: per_person_per_night
+    tax_included: false
+  international:
+    amount: null # Set your company's international limit.
+    currency: JPY
+    basis: per_person_per_night
+    tax_included: false
+  exception_policy:
+    mode: ask # ask, strict, approval_possible; not an approval itself.
+    max_overage_per_person_per_night:
+      domestic: null # Extra amount, same currency/tax basis as domestic budget.
+      international: null # null = unspecified, NOT unlimited approval.
+travel:
+  departure_airport: null
+  arrival_airport: null
+  arrival_station: null
+  arrival_station_url: null
+  preferred_corridors: []
+  # Each corridor: name, start_station, end_station, official_urls (list).
+office:
+  name: null
+  official_url: null
+  address: null
+  visit: ask # ask, yes, no; the current trip always takes precedence.
+stay:
+  adults: 1
+  rooms: 1
+  smoking: ask # ask, non_smoking, smoking
+  meals: ask # ask, room_only, breakfast
+  max_station_walk_minutes: null
+  cancellation: ask
+priorities:
+  - trip_destination_access
+  - airport_access
+  - office_access_if_visiting
+  - price
