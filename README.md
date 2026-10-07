@@ -91,6 +91,26 @@ also ignored as a safeguard; the example never contains personal settings.
 Provide check-in/out dates and the destination when invoking the skill. A visit
 date alone does not determine whether to search the previous or following night.
 
+## GitHub attachment reupload
+
+`/ht-github-attachment-reupload` copies original attachments through authenticated
+GitHub browser pages into another repository's issue, pull request, or Discussion.
+Discussion bodies, top-level comments and replies are supported from the start,
+including cross-type copies. PR inline review comments are excluded.
+
+Provide the source URL, selected attachments, exact destination and whether to add
+a comment/reply or edit existing content. The skill confirms the destination
+audience before uploading, uses available browser automation (such as Agent Browser)
+and Computer Use for native dialogs, and verifies saved links and original bytes.
+There is no API/CLI file-transfer fallback. Local Python helpers only verify bytes;
+actual downloads, private URLs and run ledgers stay outside Git.
+
+Browser access to both repositories is required. Destination-only permission
+verification requires a separate authorized user/session without source access;
+without it the skill reports that check as unverified. See the
+[validation checklist](skills/ht-github-attachment-reupload/references/validation.md)
+for local tests and the separate live-browser acceptance matrix.
+
 ## License
 
 [MIT](LICENSE)

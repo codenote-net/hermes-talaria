@@ -1,0 +1,36 @@
+{
+  "run_id": null,
+  "source_page": null,
+  "destination_page": null,
+  "destination_target": null,
+  "reply_parent": null,
+  "mode": null,
+  "audience": null,
+  "approval_evidence": null,
+  "browser_environment": null,
+  "download_directory": null,
+  "permission_check": {
+    "status": "not_verified",
+    "evidence": null
+  },
+  "items": [
+    {
+      "id": "item-1",
+      "source_asset_url": null,
+      "selected_occurrences": [],
+      "state": "pending",
+      "last_verified_state": null,
+      "local_path": null,
+      "size": null,
+      "sha256": null,
+      "download_evidence": null,
+      "new_asset_url": null,
+      "upload_evidence": null,
+      "publication_permalink": null,
+      "readback_evidence": null,
+      "integrity_evidence": null,
+      "render_evidence": null,
+      "blocker": null
+    }
+  ]
+}
