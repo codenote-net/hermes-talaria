@@ -14,6 +14,21 @@ Also parse frontmatter, confirm name matches directory, check all relative links
 and exercise the installer with a temporary `HERMES_DIR` rather than modifying an
 active profile. Local tests validate the helper/package, not the browser workflow.
 
+## Native chooser isolation
+
+Use a local-only file-input page with no external requests and a harmless fixture.
+Display the selected name, size and browser-computed SHA-256; compare them with
+the local original. Test the wrapper and supported direct-driver path separately,
+following the Native chooser recovery section in the [runbook](github-attachments.md).
+
+Record background, foreground, persistent-focus approval and manual assistance
+separately. For repeatability, require three consecutive selections from a cleared
+input, checking the result each time. A single success is not a stability pass.
+Test session recovery separately and reacquire references after reconnecting.
+Keep run-specific evidence outside the package; do not publish desktop screenshots
+containing unrelated applications or personal information. Local selection does
+not satisfy the live upload/download or destination-only authorization checks.
+
 ## Live browser acceptance (requires authorized test targets)
 
 Use harmless original image and PDF/ZIP fixtures. Obtain permission for test posts

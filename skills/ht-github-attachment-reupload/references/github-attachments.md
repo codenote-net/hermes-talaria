@@ -21,6 +21,43 @@ GitHub upload support. If remote browser bytes cannot be inspected with local to
 use tools in that same environment or pause for a user-approved handoff. Never
 assume a browser-returned remote path is readable on the agent host.
 
+## Native chooser recovery
+
+If element-index input fails with `snapshot_id_required`, do not repeat it.
+Inspect the installed driver schema and use a fresh snapshot/token through its
+supported interface when the wrapper cannot carry that token. Direct cua-driver
+calls may drive the browser UI only; they do not authorize HTTP file transfers,
+credential extraction, permission bypasses or disabling exact-window checks.
+
+Re-discover the chooser's process and window after it opens. A sheet visible in
+the parent AX tree is not necessarily addressable through that parent: respect
+`element_outside_target_window` and unresolved-window refusals. Do not assume an
+unresolved AX window proves that the user is on another Space.
+
+After verified background failure, follow the driver's supported recovery route:
+
+1. Obtain explicit approval to keep the exact browser/chooser in front and ask the
+   user to pause input. Approval for a brief foreground action is not approval for
+   persistent focus. Do not switch Spaces or manipulate unrelated windows.
+2. Bring the exact target forward and verify it. If window-targeted actions remain
+   ineffective and the driver recommends desktop recovery, capture a fresh
+   `get_desktop_state` image and use its native PNG pixel coordinates with the
+   supported desktop target (`kind: desktop`, `display_id: primary`). Inspect the
+   live schema before calling; never hard-code IDs, tokens or coordinates.
+3. Do not mix AX desktop bounds, window-local images and resized display images.
+   Resolve coordinate-contract disagreements against the live driver schema and
+   capture metadata before input. Stop if the target is obscured or uncertain.
+4. Select only the approved downloaded original. Read back the selected filename;
+   verify size/hash where exposed. For GitHub, still require upload completion,
+   the new attachment URL, publication read-back and browser re-download digest.
+5. If input times out, inspect fresh state before retrying. Re-establish a failed
+   session using the supported lifecycle interface and discard stale references.
+   Stop for a user-approved handoff if safe targeting cannot be established.
+
+Record wrapper vs direct-driver operation, foreground vs background delivery and
+any manual file selection separately. A local chooser success does not establish
+GitHub end-to-end automation, background-only operation or repeatability.
+
 ## Target distinctions
 
 | Target | Required identity check |
