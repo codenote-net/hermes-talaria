@@ -1,0 +1,47 @@
+# このファイルは合成例です。個人用コピーは必ずGit管理外へ保存してください。
+# パス優先順位: 明示指定 > HT_GITHUB_USAGE_CONFIG >
+# ~/.config/hermes-talaria/github-usage.yaml
+# 認証情報・トークン・Cookie・rclone設定は絶対に記載しません。
+version: 1
+github:
+  deployment: enterprise_cloud
+  enterprise: example-enterprise
+  pages:
+    # 完全URLをそのまま保存します。クエリの意味は推測しません。
+    usage:
+      url: https://github.com/enterprises/example-enterprise/settings/billing/usage?selection=opaque-example
+    # 非選択ページはnullでも可。利用時は完全URLを指定してください。
+    ai_usage: null
+report:
+  page: usage
+  kind: detailed
+  period:
+    # page_selectionにはブラウザで観測した開始日・終了日が必要です。
+    mode: page_selection
+    timezone: UTC
+    # reference_date: "2026-10-08"
+    # custom選択時にだけ、両端を含む日付を指定します。
+    # start_date: "2026-09-01"
+    # end_date: "2026-09-30"
+notification:
+  # ユーザーが取得したダウンロードリンクを受け取る既定動作。
+  mode: user_link
+  # browser_mail選択時にのみ追加してください。
+  # mail_url: https://example.test/mail
+  # expected_recipient: reader@example.test
+  # expected_account: reader@example.test
+  # approved_forwarded_recipients: []
+  # wait_interval_seconds: 30
+  # wait_timeout_seconds: 600
+acquisition:
+  method: browser
+destination:
+  provider: google_drive
+  transport: browser
+  folder_id: example-folder
+  folder_url: https://drive.google.com/drive/folders/example-folder
+upload:
+  # archiveが既定。replaceはユーザーが明示したときだけ。
+  mode: archive
+local:
+  output_dir: ~/.local/share/hermes-talaria/github-usage/
