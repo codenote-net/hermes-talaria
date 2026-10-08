@@ -81,3 +81,7 @@ __pycache__/
 # Local hotel preferences and research output (examples remain tracked).
 hotel-preferences.yaml
 hotel-research-results/
+
+# Private GitHub usage settings and report artifacts (examples remain tracked).
+github-usage.yaml
+github-usage-results/

@@ -111,6 +111,36 @@ without it the skill reports that check as unverified. See the
 [validation checklist](skills/ht-github-attachment-reupload/references/validation.md)
 for local tests and the separate live-browser acceptance matrix.
 
+## GitHub usage report sync
+
+`/ht-github-usage-sync` exports GitHub Enterprise Cloud billing reports through
+adaptive, authenticated browser interaction and saves original CSV files to an
+explicitly configured cloud folder. Metered usage is the default; AI usage is a
+separate selectable page. GitHub report requests and downloads never use an API,
+internal endpoint, or direct HTTP fallback.
+
+Copy the shareable
+[`github-usage.example.yaml`](skills/ht-github-usage-sync/templates/github-usage.example.yaml)
+to `~/.config/hermes-talaria/github-usage.yaml` outside Git. Configure each billing
+page's complete URL, enterprise, report period, and cloud destination. An explicit
+config path takes precedence over `HT_GITHUB_USAGE_CONFIG`, then the default path.
+Actual URLs, recipients, folder IDs, CSV files, and run ledgers must stay outside
+Git; `github-usage.yaml` and `github-usage-results/` are also ignored as safeguards.
+
+The initial browser upload procedure targets Google Drive. Optional rclone
+transfers are separate from browser-only GitHub acquisition; see the
+[destination matrix](skills/ht-github-usage-sync/references/cloud-destinations.md)
+for supported combinations and account prerequisites. No destination is inferred,
+no public sharing links are created, and no scheduled jobs or task issues are
+registered by this skill.
+
+The workflow can inspect a configured browser mailbox or resume from a user-supplied
+download link. It preserves the original CSV, freezes the run's period and filename,
+and verifies saved bytes by downloading the exact destination file again. Missing
+mail, pending requests, incomplete uploads, and unverified read-backs are not success.
+See the [manual validation checklist](skills/ht-github-usage-sync/references/manual-validation.md)
+for live-browser gates, which are separate from synthetic local tests.
+
 ## License
 
 [MIT](LICENSE)

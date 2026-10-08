@@ -1,0 +1,47 @@
+# This file is a synthetic example. Always store personal copies outside Git.
+# Path precedence: explicit path > HT_GITHUB_USAGE_CONFIG >
+# ~/.config/hermes-talaria/github-usage.yaml
+# Never include credentials, tokens, cookies, or rclone configuration.
+version: 1
+github:
+  deployment: enterprise_cloud
+  enterprise: example-enterprise
+  pages:
+    # Preserve the full URL exactly. Do not infer query semantics.
+    usage:
+      url: https://github.com/enterprises/example-enterprise/settings/billing/usage?selection=opaque-example
+    # An unselected page may be null. Specify its full URL when using it.
+    ai_usage: null
+report:
+  page: usage
+  kind: detailed
+  period:
+    # page_selection requires start and end dates observed in the browser.
+    mode: page_selection
+    timezone: UTC
+    # reference_date: "2026-10-08"
+    # Specify inclusive dates only when custom is selected.
+    # start_date: "2026-09-01"
+    # end_date: "2026-09-30"
+notification:
+  # Default: receive the download link obtained by the user.
+  mode: user_link
+  # Add these fields only when browser_mail is selected.
+  # mail_url: https://example.test/mail
+  # expected_recipient: reader@example.test
+  # expected_account: reader@example.test
+  # approved_forwarded_recipients: []
+  # wait_interval_seconds: 30
+  # wait_timeout_seconds: 600
+acquisition:
+  method: browser
+destination:
+  provider: google_drive
+  transport: browser
+  folder_id: example-folder
+  folder_url: https://drive.google.com/drive/folders/example-folder
+upload:
+  # archive is the default. Use replace only when explicitly requested by the user.
+  mode: archive
+local:
+  output_dir: ~/.local/share/hermes-talaria/github-usage/
