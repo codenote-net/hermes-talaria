@@ -1,63 +1,63 @@
-# 個人設定の契約と検証
+# Personal configuration contract and validation
 
-`github-usage.example.yaml` は架空の設定例。**このテンプレート自体を実行設定として指定しない**（Git内パスなので拒否される）。個人用コピーはGit管理外へ保存する。実在する組織・リポジトリ・顧客ID・メール・帳票・認証情報を共有ファイルやテストへ転記しない。
+`github-usage.example.yaml` is a fictional configuration example. **Do not use the template itself as runtime configuration** (its path is inside Git and will be rejected). Store personal copies outside Git. Do not copy real organizations, repositories, customer IDs, emails, reports, or credentials into shared files or tests.
 
-## 設定の探索と型
+## Configuration discovery and types
 
-- 明示パス > `HT_GITHUB_USAGE_CONFIG` > `~/.config/hermes-talaria/github-usage.yaml`。上位指定が無効でも下位へフォールバックしない。
-- `load_config(explicit=None) -> dict` は指定された設定だけを読み、正規化する。`.env`、Cookie、rclone設定、認証ファイルは読まない。
-- `validate_config(dict) -> dict` は元の辞書を変更せず、既定値を含むコピーを返す。
-- `ConfigError(ValueError)` が検証エラー。エラー文に入力値を含めない。CLIは設定のURL・メール・remote名・パス・enterpriseを表示しない。
-- YAMLは`SafeLoader`派生。重複キー（マージ後の重複も）、未知キー、秘密キー、誤った型を拒否する。整数項目にboolは不可。`version`は整数`1`だけ。
-- 設定ファイルと`local.output_dir`はsymlinkを解決し、存在しない子パスは最寄りの既存親からGitリポジトリを探索する。無視対象でもGit内なら拒否する。ルート・上位参照も拒否。Gitコマンドが使えず安全を確認できない場合は停止する。保存直前にも同じ検証を行う（後からsymlink/リポジトリ状態が変わる可能性がある）。
+- Explicit path > `HT_GITHUB_USAGE_CONFIG` > `~/.config/hermes-talaria/github-usage.yaml`. An invalid higher-priority path does not fall back to a lower-priority one.
+- `load_config(explicit=None) -> dict` reads and normalizes only the selected configuration. It does not read `.env`, cookies, rclone configuration, or authentication files.
+- `validate_config(dict) -> dict` returns a copy including defaults without modifying the original dictionary.
+- Validation errors use `ConfigError(ValueError)`. Errors do not include input values. The CLI does not display configured URLs, emails, remote names, paths, or Enterprise values.
+- YAML uses a `SafeLoader` subclass. Reject duplicate keys (including after merges), unknown keys, secret keys, and incorrect types. Booleans are not valid integer values. `version` must be integer `1`.
+- Resolve symlinks for the configuration file and `local.output_dir`; for nonexistent child paths, search for Git repositories from the nearest existing ancestor. Reject paths inside Git even if ignored. Also reject root paths and parent traversal. Stop if Git is unavailable and safety cannot be established. Repeat validation immediately before saving, since symlinks/repository state may change.
 
-## GitHub・取得・通知
+## GitHub, retrieval, and notifications
 
-- `github`の必須項目は`deployment: enterprise_cloud`、`enterprise`（slug）、`pages`。
-- `pages.usage`と`pages.ai_usage`は`{url: 完全HTTPS URL}`またはnull。選択ページは必須。URLは資格情報を含めず、クエリを保持し、その意味を推測しない。URLの対象enterprise・表示ページはブラウザで照合する。
-- `report.page`は`usage`が既定、`kind`は`detailed`が既定。usageでは`detailed`/`summarized`、ai_usageでは**明示的な**`kind: ai_usage`だけ。
-- `acquisition.method`は`browser`のみ。API・HTTP取得は対象外。
-- `notification.mode: user_link`が既定。ユーザーからダウンロードリンクを受け取る。
-- `browser_mail`では`mail_url`（HTTPS）、`expected_recipient`（メール）、`expected_account`（画面で照合するアカウント文字列）が必須。承認済み転送先は`approved_forwarded_recipients`のメール配列。自動的に宛先を推測しない。
-- メール待機間隔`wait_interval_seconds`は30〜60秒（既定30）、上限`wait_timeout_seconds`は1〜600秒（既定600）。どちらも整数のみ（bool不可）、間隔≦上限。user_linkにメール設定を混ぜない。
+- Required `github` fields are `deployment: enterprise_cloud`, `enterprise` (slug), and `pages`.
+- `pages.usage` and `pages.ai_usage` are `{url: full HTTPS URL}` or null. The selected page is required. URLs must not contain credentials; preserve queries without inferring their meaning. Match the URL Enterprise and displayed page in the browser.
+- `report.page` defaults to `usage`; `kind` defaults to `detailed`. usage supports `detailed`/`summarized`; ai_usage requires **explicit** `kind: ai_usage`.
+- `acquisition.method` supports only `browser`. API/HTTP retrieval is out of scope.
+- `notification.mode: user_link` is the default. Receive the download link from the user.
+- `browser_mail` requires `mail_url` (HTTPS), `expected_recipient` (email), and `expected_account` (account string to match on screen). Approved forwarding recipients are an email array in `approved_forwarded_recipients`. Do not infer recipients automatically.
+- Mail `wait_interval_seconds` is 30-60 seconds (default 30); `wait_timeout_seconds` is 1-600 seconds (default 600). Both are integers only (no bool), and interval <= timeout. Do not mix mail settings into user_link.
 
-## 期間の確定と再開
+## Resolving periods and resuming
 
 API: `resolve_period(report, observed_start=None, observed_end=None, now=None) -> dict`。
-エラーは`PeriodError(ValueError)`。`now`はタイムゾーン付きdatetime、省略時は現在UTC時刻。
+Errors use `PeriodError(ValueError)`. `now` is a timezone-aware datetime; when omitted, use current UTC time.
 
-`report.period`で許されるキーは`mode`、`timezone`、`reference_date`、`start_date`、`end_date`だけ。
+Allowed `report.period` keys are only `mode`, `timezone`, `reference_date`, `start_date`, and `end_date`.
 
-- `timezone`は利用可能なIANA名、既定UTC。特定の地域を固定しない。
-- `reference_date`は引用符付き`"YYYY-MM-DD"`。省略時はnowを設定timezoneへ変換した日付。明示した基準日がその日付より未来なら全モードで拒否する（UTCとの日付差だけでは拒否しない）。YAMLの日付オブジェクトは不可。
-- `page_selection`（既定）: ブラウザで観測した両端を`observed_start`/`observed_end`へ渡す。URLやクエリから推測しない。片端だけでは失敗する。
-- `previous_month`: 基準日の前暦月の初日〜末日。
-- `current_month`: 基準日の暦月初日〜基準日。ただし終了日はUTCの今日を超えない。timezoneがUTCより先の月に入っていて、UTCでは前月の場合、取得可能な範囲がないので停止する。
-- `custom`: 引用符付き`start_date`/`end_date`が必須。開始日≦終了日。他のモードにこの2キーを混ぜない。
-- 両端を含め、detailed/ai_usageは最大31日。summarizedは最大1暦年（例: 2024-01-01〜2024-12-31）。閏日開始は翌年2月末まで。
-- 観測・custom・前月を含め、UTCの今日より後の終了日は拒否する。現在月・今日のデータは未完了の場合がある。これは日付上限の検証であってデータ可用性の保証ではない。画面に該当期間・種類がなければ停止してユーザーに確認する。
+- `timezone` is an available IANA name, default UTC. Do not fix a particular region.
+- `reference_date` is a quoted `"YYYY-MM-DD"` string. When omitted, use the date obtained by converting now to the configured timezone. Reject an explicit reference date later than that date in every mode (a date difference from UTC alone is not grounds for rejection). YAML date objects are not allowed.
+- `page_selection` (default): pass both browser-observed endpoints as `observed_start`/`observed_end`. Do not infer them from URLs or queries. One endpoint alone fails.
+- `previous_month`: first through last day of the calendar month preceding the reference date.
+- `current_month`: first day of the reference calendar month through the reference date, capped at today in UTC. If the timezone has entered a new month while UTC remains in the previous month, stop because no retrievable range exists.
+- `custom`: quoted `start_date`/`end_date` are required, with start <= end. Do not mix these keys into other modes.
+- Inclusive limits: detailed/ai_usage at most 31 days; summarized at most 1 calendar year (example: 2024-01-01 through 2024-12-31). A leap-day start runs through the end of February the following year.
+- Reject end dates after today in UTC, including observed/custom/previous-month periods. Current-month/today data may be incomplete. This validates date limits, not data availability. Stop and ask the user if the screen lacks the requested period/kind.
 
-戻り値は`start_date`、`end_date`、`reference_date`、`timezone`。初回にGit管理外へ保存し、再開時には`report.period`を`mode: custom`と保存済み4項目で構成する。初回の確定期間を再計算しない。page/kindは正規化済み`config['report']`に別途保持する。
+The return value contains `start_date`, `end_date`, `reference_date`, and `timezone`. Save it outside Git on the first run; on resume, construct `report.period` with `mode: custom` and these four persisted fields. Do not recalculate the initial resolved period. Keep page/kind separately in normalized `config['report']`.
 
-期間上限・UTC記録の根拠: [GitHub Billing reports reference](https://docs.github.com/en/billing/reference/billing-reports)。メール取得の根拠: [Downloading usage reports](https://docs.github.com/en/billing/how-tos/products/view-productlicense-use#downloading-usage-reports)。現在月の切り詰めはこのスキルの安全な期間解決方針であり、画面の選択肢を保証しない。
+Sources for period limits and UTC recording: [GitHub Billing reports reference](https://docs.github.com/en/billing/reference/billing-reports). Source for email retrieval: [Downloading usage reports](https://docs.github.com/en/billing/how-tos/products/view-productlicense-use#downloading-usage-reports). Capping the current month is this skill's safe period-resolution policy, not a guarantee of UI options.
 
-## 保存先の対応表
+## Destination support matrix
 
-`destination.provider`は明示必須。`transport`はbrowserが既定。
+`destination.provider` is explicitly required. `transport` defaults to browser.
 
-| transport | provider | 必須キー | 任意キー |
+| transport | provider | Required keys | Optional keys |
 |---|---|---|---|
-| browser | google_drive | `folder_id`, `folder_url` | なし |
+| browser | google_drive | `folder_id`, `folder_url` | None |
 | rclone | google_drive | `remote`, `folder_id` | `shared_drive_id` |
-| rclone | onedrive / sharepoint / dropbox | `remote`, `folder_path` | なし |
-| rclone | box | `remote`, `folder_id` | なし |
-| rclone | s3 / gcs | `remote`, `bucket`, `prefix` | なし |
+| rclone | onedrive / sharepoint / dropbox | `remote`, `folder_path` | None |
+| rclone | box | `remote`, `folder_id` | None |
+| rclone | s3 / gcs | `remote`, `bucket`, `prefix` | None |
 
-browserはGoogle Driveのみ。他のbrowser組み合わせは明示的に未対応。Google DriveのURLは`https://drive.google.com/drive/folders/<folder_id>`と一致する必要がある。HTTPや他ホスト、ルート保存は不可。
+Browser transport supports only Google Drive; other browser combinations are explicitly unsupported. The Google Drive URL must match `https://drive.google.com/drive/folders/<folder_id>`. HTTP, other hosts, and root storage are not allowed.
 
-rcloneの`remote`は既存の名前参照のみ（英数字で開始、以後英数字・`_`・`-`）。コロン・パス・空白・フラグを禁止。remoteの設定・秘密情報は完全に外部へ置く。フォルダーパスとprefixは空でない相対パスで、`..`、`.`、空要素、先頭スラッシュ、バックスラッシュ、コロンを禁止。Boxのroot ID `0`、ID `root`を拒否する。互換性のない保存先キーを混在させない。
+rclone `remote` only references an existing name (starts with an alphanumeric character, followed by alphanumerics, `_`, or `-`). No colons, paths, spaces, or flags. Keep remote configuration/secrets entirely external. Folder paths and prefixes must be nonempty relative paths without `..`, `.`, empty components, leading slash, backslash, or colon. Reject Box root ID `0` and ID `root`. Do not mix incompatible destination keys.
 
-例（`destination`だけを置き換える）:
+Example (replace only `destination`):
 
 ```yaml
 destination:
@@ -68,11 +68,11 @@ destination:
   prefix: reports/github-usage
 ```
 
-`upload.mode`はarchiveが既定。replaceは明示指定だけ。`local.output_dir`の既定は`~/.local/share/hermes-talaria/github-usage/`で、Git管理外であることを検証する。
+`upload.mode` defaults to archive. replace requires explicit selection. `local.output_dir` defaults to `~/.local/share/hermes-talaria/github-usage/` and is validated to be outside Git.
 
-## 検証コマンドと実行証拠
+## Validation commands and execution evidence
 
-リポジトリルートから実行。venvはGit管理外に作る。
+Run from the repository root. Create the venv outside Git.
 
 ```sh
 python3 -m venv /tmp/ht-usage-sync-venv
@@ -83,4 +83,4 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=skills/ht-github-usage-sync/tests \
   --config /path/outside/git/github-usage.yaml
 ```
 
-合成テストを先に作り、実装前に`ModuleNotFoundError: No module named 'validate_config'`と`report_period`を確認した（RED）。Boxルート拒否の追加テストも実装前に`ConfigError not raised`を確認した。実装後の上記限定テストは`Ran 16 tests ... OK`（GREEN）。依存はPyYAML 6.0.3を外部venvに導入。CLI成功時の値非表示、失敗時のexit 2・メール/URL/パス非表示も実プロセスで検証済み。実際のユーザー設定・認証・クラウドにはアクセスしていない。
+Synthetic tests were written first; before implementation they produced `ModuleNotFoundError: No module named 'validate_config'` and `report_period` (RED). An additional Box-root rejection test also produced `ConfigError not raised` before implementation. After implementation, the focused tests above reported `Ran 16 tests ... OK` (GREEN). PyYAML 6.0.3 was installed in an external venv. Real subprocess tests verified that CLI success does not display values, and failure returns exit 2 without exposing emails/URLs/paths. No real user configuration, authentication, or cloud service was accessed.

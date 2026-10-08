@@ -1,4 +1,4 @@
-"""合成設定だけを使う設定検証テスト。"""
+"""Configuration validation tests using only synthetic configuration."""
 import copy
 import os
 from pathlib import Path

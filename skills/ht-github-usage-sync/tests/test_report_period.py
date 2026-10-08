@@ -1,4 +1,4 @@
-"""月境界・包含日数・UTC可用性の合成テスト。"""
+"""Synthetic tests for month boundaries, inclusive day counts, and UTC availability."""
 from datetime import datetime, timezone
 from pathlib import Path
 import sys
