@@ -122,6 +122,17 @@ default for normal use; choose a distinct ID only for an intentionally independe
    `ja`, and 60 seconds when the user has no preference. Completion: the source file exists
    and every chosen parameter is known.
 
+   For several recordings of one meeting, retain the supplied order and produce one integrated
+   minutes document. Use separate `partNN/` directories for audio, transcripts, captures, and
+   logs. Combine complete transcripts with source-file headers and preserve file-local
+   timestamps; cite decisions and actions as `partNN HH:MM:SS`. Never fill recording gaps.
+   Label gap durations derived from filename start times as estimates. Verify transcription
+   success for each part and aggregate capture counts programmatically. Run steps 3–5 for
+   each recording inside its own `partNN/` directory. Pass the combined full transcript and
+   every part's capture directory to both drafting and verification, explicitly including
+   the part-qualified citation format in both prompts. Reference captures with their
+   `partNN/captures/` paths in the final minutes.
+
 2. **Prepare an isolated output directory.** Avoid overwriting unrelated `meeting_audio.wav`,
    `meeting_audio.txt`, or `captures/` files. If they already exist, choose a job-specific
    directory or ask before replacing them. Completion: output paths are safe to write.
@@ -182,11 +193,20 @@ default for normal use; choose a distinct ID only for an intentionally independe
    Run this command with the output directory as its working directory. Keep the drafting prompt
    self-contained and require an absolute output path. In non-interactive `--print` mode,
    `--permission-mode auto` can still return exit code 0 after asking for write confirmation
-   without creating the file. If that happens, rerun with `--permission-mode auto
-   --allowedTools Read Write Glob`, explicitly state that writing the requested draft is
-   authorized, and verify the file exists and is non-empty. If Claude CLI authentication is
-   unavailable, stop and report that model-routing requirement; do not silently draft with the
-   main model. Completion: the child command exits successfully and the draft file exists and is
+   without creating the file. If that happens, rerun with an explicit tool allowlist and the
+   same self-contained drafting prompt, stating that writing the requested draft is authorized:
+
+   ```bash
+   claude --permission-mode auto --print --model claude-sonnet-5-5 --effort medium \
+     --no-session-persistence --allowedTools Read Write Glob -- \
+     "<SAME_DRAFTING_PROMPT> Writing the requested draft is authorized."
+   ```
+
+   Keep `--` after all options and immediately before the prompt so the variadic
+   `--allowedTools` option cannot consume the prompt as another tool name. Verify the file
+   exists and is non-empty after the retry; if it is still missing, stop and report the failure.
+   If Claude CLI authentication is unavailable, stop and report that model-routing requirement;
+   do not silently draft with the main model. Completion: the child command exits successfully and the draft file exists and is
    non-empty.
 
 7. **Verify with the main model.** Start a second Codex CLI pass with the exact same model ID:
