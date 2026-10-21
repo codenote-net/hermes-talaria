@@ -1,0 +1,32 @@
+# Synthetic Organization example only; store personal copies outside Git.
+# Never include real organization names, customer identifiers or credentials.
+version: 1
+github:
+  deployment: organization
+  organization: example-org
+  # enterprise is prohibited even when null.
+  pages:
+    usage:
+      # Preserve the literal query; never infer numeric filter meaning.
+      url: https://github.com/organizations/example-org/settings/billing/
+    # Unselected pages may be null; provide the exact full URL before selection.
+    ai_usage: null
+report:
+  page: usage
+  kind: detailed
+  period:
+    mode: page_selection
+    timezone: UTC
+notification:
+  mode: user_link
+acquisition:
+  method: browser
+destination:
+  provider: google_drive
+  transport: browser
+  folder_id: example-folder
+  folder_url: https://drive.google.com/drive/folders/example-folder
+upload:
+  mode: archive
+local:
+  output_dir: ~/.local/share/hermes-talaria/github-usage/

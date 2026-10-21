@@ -6,10 +6,12 @@ version: 1
 github:
   deployment: enterprise_cloud
   enterprise: example-enterprise
+  # Do not add organization, even as null, for enterprise_cloud deployment.
+  # See github-usage.organization.example.yaml for Organization deployment.
   pages:
     # Preserve the full URL exactly. Do not infer query semantics.
     usage:
-      url: https://github.com/enterprises/example-enterprise/settings/billing/usage?selection=opaque-example
+      url: https://github.com/enterprises/example-enterprise/billing/usage?selection=opaque-example
     # An unselected page may be null. Specify its full URL when using it.
     ai_usage: null
 report:

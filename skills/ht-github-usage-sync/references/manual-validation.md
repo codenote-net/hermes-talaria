@@ -23,6 +23,13 @@ Check each bundled test and guide for actual configuration/CSV/ledger test comma
 
 ## Configuration and local/mock acceptance
 
+- [ ] Verify explicit `mode: local_only` without destination/upload; reject those keys even when null or empty. Omitted mode remains cloud and requires a destination. Local-only ledger version 3 requires explicit deployment and excludes destination_id/upload_mode; preserve all old version 1/2 payload/hash/filenames.
+- [ ] Test shared request reservations across cloud/local-only, accepted requests and user_link downloads, unchanged CSV gates, all required artifacts, pending files, and terminal `local_validated` revalidation on show/resume. Local-only must reject cloud states/evidence and uploads before remote calls. Report `cloud_verified=false`, not cloud success.
+
+- [ ] Check Enterprise Cloud and Organization deployments with configuration version 1. Require exactly the selected slug key and reject the other even when null. Reject malformed slugs, wrong hosts/ports/credentials, wrong deployment/slug/page paths, encoded path substitutions and extra path segments in every nonnull page, including unselected pages. Accept the deployment-specific billing entrypoint and selected report paths, with an optional trailing slash. Preserve queries literally without interpreting numeric values.
+- [ ] Check new explicit-deployment ledger version 2 and legacy enterprise-only version 1 read/resume without changing payload hash, names or outstanding reservations. Test one shared `github_account` reservation across both deployments and different slugs.
+- [ ] Verify config/ledger deployment and slug mismatch blocks upload before any remote call. Validate synthetic Organization Detailed, Summarized and AI fixtures with unchanged CSV profiles; do not treat fixtures as real GitHub evidence.
+
 - [ ] Verify explicit path > `HT_GITHUB_USAGE_CONFIG` > default path precedence with synthetic files. Do not create real configuration without approval or read secrets.
 - [ ] Unknown keys/kinds/values, invalid types, empty/duplicate selections, and invalid periods produce errors. No unsolicited normalization.
 - [ ] `report.page` is a single value, `usage` or `ai_usage`: one page per run. Page arrays are not allowed in configuration. Test each single page and, when both are needed, separate runs executed serially for the same account using synthetic state. Do not discover/access/retry/substitute unselected pages.
@@ -36,8 +43,19 @@ Check each bundled test and guide for actual configuration/CSV/ledger test comma
 
 ## Real-browser E2E (all initially unverified)
 
+For an approved local-only run, apply the retrieval and local CSV checks below,
+then finish as `local_validated`. Skip cloud checks as out of scope, not passed.
+Do not fabricate destination evidence. Report actual browser observations
+separately from offline tests; user_link leaves email unverified.
+
 ### Common checks and usage
 
+All target-matching checks below apply to the selected Enterprise or Organization.
+Both deployments remain real-browser **unverified** independently. Preserve the
+actual primary email check, browser-only retrieval, Google Drive exact-file
+independent browser readback, and private evidence for each approved run.
+
+- [ ] From each supported billing entrypoint, follow the visible selected-report link and verify the final target, URL, heading and filters before opening the report dialog. Do not synthesize report URLs or treat the overview as evidence.
 - [ ] Inspect actual browser help/schema. Use observe -> act -> observe again with current labels/roles/screenshots, not fixed selectors.
 - [ ] Match expected GitHub account, Enterprise, full URL, usage screen, and actual primary email display. Stop and hand off login/SSO/MFA/CAPTCHA.
 - [ ] Read back usage + Detailed kind and fixed period on the request screen; press Email me report exactly once and observe acceptance again.

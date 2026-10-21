@@ -12,6 +12,7 @@ import tempfile
 from report_artifact import SafeArgumentParser, compare_files, fingerprint, private_path, validate
 from validate_config import load_config, validate_config
 from run_state import read_private
+from github_target import target_identity
 
 BACKENDS = {'google_drive': 'drive', 'onedrive': 'onedrive', 'sharepoint': 'onedrive',
             'dropbox': 'dropbox', 'box': 'box', 's3': 's3', 'gcs': 'googlecloudstorage'}
@@ -140,6 +141,8 @@ def transfer(config, file, filename, kind, start_date, end_date, confirm_destina
     provide a transaction across folder listing and upload.
     """
     c = validate_config(config)
+    if c['mode'] == 'local_only':
+        raise TransferError('Local-only configuration prohibits uploads.')
     d = c['destination']
     if d['transport'] != 'rclone':
         raise TransferError('Browser transport requires references/cloud-destinations.md; no CLI transfer.')
@@ -151,6 +154,13 @@ def transfer(config, file, filename, kind, start_date, end_date, confirm_destina
     metadata = validate(original, kind, start_date, end_date)
     ledger = read_private(state_dir)
     payload = ledger['payload']
+    if payload.get('mode') == 'local_only':
+        raise TransferError('Local-only ledger prohibits uploads, even with cloud configuration.')
+    # Legacy identity is interpreted only; never rewrite its payload/hash/names.
+    frozen_target = (target_identity(payload) if 'deployment' in payload
+                     else ('enterprise_cloud', payload['enterprise']))
+    if target_identity(c['github']) != frozen_target:
+        raise TransferError('Transfer deployment and slug must match the frozen ledger.')
     if (ledger['state'] not in {'validated', 'uploaded', 'uploaded_unverified'}
             or ledger['evidence'].get('pending_ids')
             or payload['upload_mode'] != c['upload']['mode']

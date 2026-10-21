@@ -13,8 +13,10 @@
 
 ## GitHub, retrieval, and notifications
 
-- Required `github` fields are `deployment: enterprise_cloud`, `enterprise` (slug), and `pages`.
-- `pages.usage` and `pages.ai_usage` are `{url: full HTTPS URL}` or null. The selected page is required. URLs must not contain credentials; preserve queries without inferring their meaning. Match the URL Enterprise and displayed page in the browser.
+- Configuration version remains integer `1` for Enterprise Cloud and Organization. Required `github` fields are `deployment`, exactly the selected slug key, and `pages`. `deployment: enterprise_cloud` requires `enterprise`; `deployment: organization` requires `organization`. The other slug key is prohibited even when null. Slugs match `[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?`; no whitespace, underscores, separators, escapes or leading/trailing hyphens. Do not repair identifiers.
+- `pages.usage` and `pages.ai_usage` are `{url: full HTTPS URL}` or null. The selected page is required. Every nonnull entry, including an unselected page, must use HTTPS github.com, port absent or 443, no credentials, and a matching billing entrypoint or selected report path. Enterprise bases are `/enterprises/<slug>/billing` and the legacy `/enterprises/<slug>/settings/billing`; the Organization base is `/organizations/<slug>/settings/billing`. A base or `/<page>` suffix accepts one optional trailing slash. Other subpages or extra segments are rejected. At an entrypoint, follow the visible selected-report link and verify the target/page before requesting; the overview alone is not report evidence. Do not decode or normalize paths. Preserve the full query literally without parsing or inferring its meaning. Match the selected target and displayed page in the browser; validating an unselected entry does not authorize opening it.
+- See `github-usage.organization.example.yaml` for a synthetic Organization example. Do not copy real identifiers into it. CSV Detailed, Summarized and AI profiles are unchanged across deployments.
+- New explicit-deployment ledgers use version 2 and exactly the selected slug key. Legacy enterprise-only Python payloads and CLI `--enterprise` without `--deployment` retain ledger version 1; read/resume without rewriting payload/hash/names. Configuration version and ledger version are separate. The upload adapter checks deployment and slug against the ledger before remote calls. See [local-workflow.md](../references/local-workflow.md) for the exact payload and shared account reservation contract.
 - `report.page` defaults to `usage`; `kind` defaults to `detailed`. usage supports `detailed`/`summarized`; ai_usage requires **explicit** `kind: ai_usage`.
 - `acquisition.method` supports only `browser`. API/HTTP retrieval is out of scope.
 - `notification.mode: user_link` is the default. Receive the download link from the user.
@@ -23,7 +25,7 @@
 
 ## Resolving periods and resuming
 
-API: `resolve_period(report, observed_start=None, observed_end=None, now=None) -> dict`。
+API: `resolve_period(report, observed_start=None, observed_end=None, now=None) -> dict`.
 Errors use `PeriodError(ValueError)`. `now` is a timezone-aware datetime; when omitted, use current UTC time.
 
 Allowed `report.period` keys are only `mode`, `timezone`, `reference_date`, `start_date`, and `end_date`.
@@ -43,7 +45,21 @@ Sources for period limits and UTC recording: [GitHub Billing reports reference](
 
 ## Destination support matrix
 
-`destination.provider` is explicitly required. `transport` defaults to browser.
+Top-level `mode` accepts only `cloud` (default) or `local_only`. Configuration
+version remains 1. In cloud mode, `destination.provider` is explicitly required;
+`transport` defaults to browser. Missing destination does not imply local-only.
+
+For `mode: local_only`, omit the entire `destination` and `upload` keys, including
+empty mappings or null. No provider, transport, remote, destination ID or upload
+policy is synthesized. All GitHub, period, notification, acquisition and private
+output rules remain unchanged. `notification.mode: user_link` remains the default;
+mail is not verified by a user-supplied link. See
+`github-usage.local-only.example.yaml` for a synthetic configuration. Validate a
+private copy with the CLI below, then initialize a ledger using `--mode local_only`
+and explicit deployment; do not pass destination or upload flags. Ledger version 3
+is reserved for local-only; cloud version 1/2 payloads, hashes and names are unchanged.
+Local completion is `local_validated`, never cloud `verified`. For the full
+request/download/register/completion sequence see [local-workflow.md](../references/local-workflow.md).
 
 | transport | provider | Required keys | Optional keys |
 |---|---|---|---|
@@ -72,15 +88,26 @@ destination:
 
 ## Validation commands and execution evidence
 
-Run from the repository root. Create the venv outside Git.
+Run from the repository root using the approved uv command; no fixed temporary venv is required.
 
 ```sh
-python3 -m venv /tmp/ht-usage-sync-venv
-/tmp/ht-usage-sync-venv/bin/pip install 'PyYAML>=6,<7'
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=skills/ht-github-usage-sync/tests \
-  /tmp/ht-usage-sync-venv/bin/python -m unittest test_config test_report_period -v
-/tmp/ht-usage-sync-venv/bin/python skills/ht-github-usage-sync/scripts/validate_config.py \
+  uv run --with pyyaml python -m unittest test_config test_report_period -v
+PYTHONDONTWRITEBYTECODE=1 uv run --with pyyaml python skills/ht-github-usage-sync/scripts/validate_config.py \
   --config /path/outside/git/github-usage.yaml
 ```
 
-Synthetic tests were written first; before implementation they produced `ModuleNotFoundError: No module named 'validate_config'` and `report_period` (RED). An additional Box-root rejection test also produced `ConfigError not raised` before implementation. After implementation, the focused tests above reported `Ran 16 tests ... OK` (GREEN). PyYAML 6.0.3 was installed in an external venv. Real subprocess tests verified that CLI success does not display values, and failure returns exit 2 without exposing emails/URLs/paths. No real user configuration, authentication, or cloud service was accessed.
+Run the complete offline suite after changes:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 uv run --with pyyaml python \
+  -m unittest discover -s skills/ht-github-usage-sync/tests -v
+git diff --check
+```
+
+The synthetic Organization tests cover both deployments, literal URL preservation,
+exclusive target keys, legacy/new ledgers, shared account reservations, CLI
+redaction, unchanged CSV profiles and pre-remote upload target gates. Passing
+these tests verifies local/mock contracts only. Real subprocess tests verify CLI redaction and private local
+state, not GitHub or cloud success. No test requires personal configuration,
+authentication, a browser or a live cloud service. Real E2E remains unverified.

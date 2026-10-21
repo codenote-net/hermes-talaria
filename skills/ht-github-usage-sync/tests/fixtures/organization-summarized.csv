@@ -1,0 +1,2 @@
+date,product,sku,quantity,gross_amount,net_amount,organization,repository
+2026-01-02,Actions,example-sku,1,1,1,example-org,example-repo

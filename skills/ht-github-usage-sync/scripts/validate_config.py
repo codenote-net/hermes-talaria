@@ -11,6 +11,7 @@ from urllib.parse import unquote, urlsplit
 
 import yaml
 from report_period import PeriodError, normalize_report
+from github_target import billing_path_matches, target_identity
 
 
 class ConfigError(ValueError):
@@ -192,19 +193,24 @@ def _destination(value):
 
 def validate_config(config):
     """Return a normalized dictionary without modifying input; reject unknown and secret keys."""
-    c = _map(config, {'version', 'github', 'report', 'notification', 'acquisition', 'destination', 'upload', 'local'}, 'config')
+    c = _map(config, {'version', 'mode', 'github', 'report', 'notification', 'acquisition', 'destination', 'upload', 'local'}, 'config')
+    c['mode'] = _choice(c.get('mode', 'cloud'), {'cloud', 'local_only'}, 'mode')
+    if c['mode'] == 'local_only' and {'destination', 'upload'} & set(c):
+        raise ConfigError('local_only: Omit destination and upload entirely, including null values.')
     if type(c.get('version')) is not int or c['version'] != 1:
         raise ConfigError('version: Specify integer 1.')
-    github = _map(c.get('github'), {'deployment', 'enterprise', 'pages'}, 'github')
-    _choice(github.get('deployment'), {'enterprise_cloud'}, 'github.deployment')
-    enterprise = _text(github.get('enterprise'), 'github.enterprise')
-    if not re.fullmatch(r'[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?', enterprise):
-        raise ConfigError('github.enterprise: Specify an enterprise slug.')
+    github = _map(c.get('github'), {'deployment', 'enterprise', 'organization', 'pages'}, 'github')
+    try:
+        deployment, slug = target_identity(github)
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from None
     pages = _map(github.get('pages'), {'usage', 'ai_usage'}, 'github.pages')
     for page, value in pages.items():
         if value is not None:
             entry = _map(value, {'url'}, 'github.pages')
-            _https(entry.get('url'), 'github.pages.url')
+            url = _https(entry.get('url'), 'github.pages.url')
+            if url.hostname != 'github.com' or url.port not in {None, 443} or not billing_path_matches(url.path, deployment, slug, page):
+                raise ConfigError('github.pages.url: Match the GitHub deployment, slug and billing entrypoint or selected report path.')
     try:
         report = normalize_report(c.get('report', {}))
     except PeriodError as exc:
@@ -213,14 +219,16 @@ def validate_config(config):
         raise ConfigError('github.pages: Specify the full URL of the selected page.')
     acquisition = _map(c.get('acquisition', {}), {'method'}, 'acquisition')
     acquisition['method'] = _choice(acquisition.get('method', 'browser'), {'browser'}, 'acquisition.method')
-    upload = _map(c.get('upload', {}), {'mode'}, 'upload')
-    upload['mode'] = _choice(upload.get('mode', 'archive'), {'archive', 'replace'}, 'upload.mode')
+    if c['mode'] == 'cloud':
+        upload = _map(c.get('upload', {}), {'mode'}, 'upload')
+        upload['mode'] = _choice(upload.get('mode', 'archive'), {'archive', 'replace'}, 'upload.mode')
+        c.update(destination=_destination(c.get('destination')), upload=upload)
     local = _map(c.get('local', {}), {'output_dir'}, 'local')
     output = external_path(local.get('output_dir', '~/.local/share/hermes-talaria/github-usage/'), 'local.output_dir')
     if output.exists() and not output.is_dir():
         raise ConfigError('local.output_dir: Specify a directory.')
     c.update(report=report, notification=_notification(c.get('notification', {})),
-        acquisition=acquisition, destination=_destination(c.get('destination')), upload=upload,
+        acquisition=acquisition,
         local={'output_dir': str(output)})
     return copy.deepcopy(c)
 
@@ -248,10 +256,13 @@ def main(argv=None):
     except ConfigError as exc:
         print(f'Configuration error: {exc}', file=sys.stderr)
         return 2
-    print(json.dumps({'valid': True, 'version': config['version'], 'page': config['report']['page'],
+    summary = {'valid': True, 'version': config['version'], 'mode': config['mode'], 'page': config['report']['page'],
         'kind': config['report']['kind'], 'period_mode': config['report']['period']['mode'],
-        'notification_mode': config['notification']['mode'], 'provider': config['destination']['provider'],
-        'transport': config['destination']['transport'], 'upload_mode': config['upload']['mode']}, ensure_ascii=False))
+        'notification_mode': config['notification']['mode']}
+    if config['mode'] == 'cloud':
+        summary.update(provider=config['destination']['provider'],
+                       transport=config['destination']['transport'], upload_mode=config['upload']['mode'])
+    print(json.dumps(summary, ensure_ascii=False))
     return 0
 
 

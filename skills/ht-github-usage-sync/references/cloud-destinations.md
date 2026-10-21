@@ -4,6 +4,12 @@ GitHub report retrieval remains **browser-only**. This guide and `scripts/upload
 
 ## Service / transport support matrix
 
+This guide applies only to `mode: cloud` (the default). With `mode: local_only`,
+omit destination/upload configuration entirely and skip cloud preflight, upload
+and readback. Do not invent a destination or invoke this adapter. It rejects
+local-only configuration or a local-only ledger before any remote calls. Finish
+with `local_validated`, `cloud_verified=false`; cloud storage is out of scope.
+
 "Implemented" means local contract tests and procedures exist. **No row has been tested against a real cloud service for execution, authentication, or permissions**. Mock JSON is not evidence of real-service success.
 
 | provider | browser | rclone backend | Destination / prerequisites | Execution verification |
@@ -45,6 +51,14 @@ python -c 'import sys; sys.path.insert(0, "scripts"); from report_artifact impor
 ```
 
 ## rclone: optional safe adapter
+
+Enterprise Cloud and Organization use the same storage adapter and destination
+contracts. Before any remote call, compare config deployment and selected slug
+to the frozen ledger. Interpret legacy version 1 enterprise-only payloads as
+`enterprise_cloud` without mutating payload/hash/names; explicit deployment
+payloads use ledger version 2 with exactly the selected slug key. A different
+deployment or slug blocks transfer even when CSV bytes and destination match.
+This gate does not replace browser source/account/primary-email matching.
 
 The user must already have configured rclone and the target remote. This skill does not install software, perform OAuth, inspect authentication files, or run `rclone config show/dump`. rclone itself uses existing authentication. The user verifies the target account, site/shared drive/bucket, permissions, and absence of concurrent writes. Backend matching does not prove account identity.
 
