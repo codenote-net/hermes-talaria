@@ -6,6 +6,16 @@ This guide defines a procedural contract, not a record of successful retrieval. 
 
 Check the actual tool schema or CLI help for available navigation, label/role references, screenshots, destination selection, and download-event waiting. No particular browser product is required. If capabilities are insufficient, request approval or stop; do not substitute simulated HTTP retrieval.
 
+Prefer the authorized interaction route that actually works, including native
+desktop accessibility or screenshot-based browser UI control. A dedicated
+DevTools connection is optional, not an acceptance criterion. If its setup fails,
+do not repeatedly retry the same setup or require a new tab merely to continue
+an already-open report screen. Check the native desktop route against the exact
+window and fresh controls, then observe the resulting UI before proceeding.
+This does not authorize bypassing connection refusals, enabling remote debugging
+manually, broadening grants, or skipping account/recipient/destination checks.
+Native download and independent cloud readback evidence remain mandatory.
+
 Repeat **observe -> decide -> act -> observe again** for each interaction. Identify targets using current headings, labels, roles, and displayed values; use screenshots when necessary. Do not enshrine fixed selectors, indices, or navigation sequences as the specification. Discard stale element references after navigation or modal updates. Read back the resulting URL, heading, and selected values.
 
 GitHub requests, email links, user-provided links, and CSV downloads must use the browser UI only. gh API, internal APIs, curl, urllib, requests, in-page fetch, and HTTP scraping are prohibited. Normal native communication caused by browser UI interactions is permitted. Driving a browser through a CLI is distinct from retrieving data through CLI HTTP requests. HTTP fallback to the latter is prohibited.
