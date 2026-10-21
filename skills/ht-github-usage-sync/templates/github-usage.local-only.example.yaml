@@ -1,0 +1,24 @@
+# Synthetic local-only Organization example; store personal copies outside Git.
+# Use approved real inputs only in the private copy, never in this template.
+version: 1
+mode: local_only
+# destination and upload are prohibited, including empty mappings and null.
+github:
+  deployment: organization
+  organization: example-org
+  pages:
+    usage:
+      url: https://github.com/organizations/example-org/settings/billing/
+    ai_usage: null
+report:
+  page: usage
+  kind: detailed
+  period:
+    mode: page_selection
+    timezone: UTC
+notification:
+  mode: user_link
+acquisition:
+  method: browser
+local:
+  output_dir: ~/.local/share/hermes-talaria/github-usage/

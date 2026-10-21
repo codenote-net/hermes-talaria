@@ -136,7 +136,7 @@ class SkillContract(unittest.TestCase):
                      "browser_mail", "Google Drive", "candidate", "implemented", "execution-verified")
         self.require(self.skill, "signed", "email bodies", "CSV contents", "outside Git",
                      "cron", "Issue", "installation", "profile")
-        self.assertNotRegex(self.all_docs, r'/Users/|github\.com/(?:enterprises|orgs)/[^<\s`]+')
+        self.assertNotRegex(self.all_docs, r'/Users/|github\.com/(?:enterprises|organizations|orgs)/[^<\s`]+')
         self.assertNotRegex(self.all_docs, r'https://drive\.google\.com/[^\s`]*folders/[^<\s`]+')
         self.assertNotRegex(self.all_docs, r'[A-Za-z0-9_.+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
         self.assertNotRegex(self.all_docs, r'https://github\.com/[^\s`]+/(?:issues|pull)/\d+')

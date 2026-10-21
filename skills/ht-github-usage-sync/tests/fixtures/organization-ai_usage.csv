@@ -1,0 +1,2 @@
+date,model,username,quantity,gross_amount,discount_amount,net_amount,input,output,cache_read,cache_write
+2026-01-02,example-model,example-user,1,1,0,1,1,1,0,0

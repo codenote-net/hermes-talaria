@@ -58,7 +58,7 @@ class ConfigTests(unittest.TestCase):
     def test_page_kind_pairs(self):
         c = fixture(); c['report'] = {'page': 'ai_usage'}
         with self.assertRaises(ConfigError): validate_config(c)
-        c['github']['pages']['ai_usage'] = {'url': 'https://example.test/ai_usage?selection=opaque'}
+        c['github']['pages']['ai_usage'] = {'url': 'https://github.com/enterprises/example-enterprise/settings/billing/ai_usage?selection=opaque'}
         with self.assertRaises(ConfigError): validate_config(c)
         c['report']['kind'] = 'ai_usage'
         self.assertEqual(validate_config(c)['report']['kind'], 'ai_usage')

@@ -13,6 +13,7 @@ import tempfile
 from urllib.parse import urlsplit
 
 from report_artifact import PROFILES, PARTIAL_SUFFIXES, SafeArgumentParser, compare_files, iso_date, private_path, validate
+from github_target import DEPLOYMENTS, target_identity
 
 VERSION = 1
 PAYLOAD_KEYS = {'run_id', 'github_account', 'enterprise', 'page', 'kind', 'start_date', 'end_date', 'destination_id', 'upload_mode', 'required_ids'}
@@ -26,7 +27,8 @@ TRANSITIONS = {
     'waiting_for_link': {'downloaded', 'blocked_by_pending', 'expired', 'cancelled'},
     'blocked_by_pending': {'request_attempted', 'requested', 'waiting_for_link', 'downloaded', 'expired', 'cancelled'},
     'downloaded': {'validated', 'blocked_by_pending'},
-    'validated': {'uploaded', 'uploaded_unverified', 'blocked_by_pending'},
+    'validated': {'local_validated', 'uploaded', 'uploaded_unverified', 'blocked_by_pending'},
+    'local_validated': set(),
     'uploaded': {'verified', 'uploaded_unverified', 'blocked_by_pending'},
     'uploaded_unverified': {'uploaded', 'verified', 'blocked_by_pending'},
     'verified': set(),
@@ -47,14 +49,30 @@ def _unsigned_url(value):
     return value
 
 
+def _payload_version(payload):
+    if payload.get('mode') == 'local_only':
+        return 3
+    return 2 if 'deployment' in payload else VERSION
+
+
 def _payload(payload):
-    if not isinstance(payload, dict) or set(payload) != PAYLOAD_KEYS:
+    if not isinstance(payload, dict):
         raise ValueError('Supply exactly the documented run payload keys.')
-    for key in PAYLOAD_KEYS - {'required_ids'}:
+    keys = PAYLOAD_KEYS
+    if 'deployment' in payload:
+        deployment, _ = target_identity(payload)
+        keys = (PAYLOAD_KEYS - {'enterprise'}) | {'deployment', DEPLOYMENTS[deployment][0]}
+    if 'mode' in payload:
+        if payload['mode'] != 'local_only' or 'deployment' not in payload:
+            raise ValueError('Only local_only payloads include mode and require explicit deployment.')
+        keys = (keys - {'destination_id', 'upload_mode'}) | {'mode'}
+    if set(payload) != keys:
+        raise ValueError('Supply exactly the documented run payload keys.')
+    for key in keys - {'required_ids'}:
         value = payload[key]
         if not isinstance(value, str) or not value.strip() or len(value) > 2048 or any(ord(c) < 32 for c in value):
             raise ValueError('Run payload fields must be bounded nonempty strings.')
-    if payload['upload_mode'] not in {'archive', 'replace'}:
+    if 'mode' not in payload and payload['upload_mode'] not in {'archive', 'replace'}:
         raise ValueError('Select archive or replace upload mode.')
     if payload['kind'] not in PROFILES:
         raise ValueError('Select a supported billing report kind.')
@@ -230,9 +248,16 @@ def _read(root):
         data = json.loads(file.read_text(encoding='utf-8'))
     except (ValueError, UnicodeError):
         raise ValueError('Ledger JSON is invalid; preserve it and recover manually.') from None
-    if not isinstance(data, dict) or set(data) != STATE_KEYS or type(data['version']) is not int or data['version'] != VERSION or not isinstance(data['state'], str) or data['state'] not in TRANSITIONS:
+    if not isinstance(data, dict) or set(data) != STATE_KEYS or type(data['version']) is not int or data['version'] not in {VERSION, 2, 3} or not isinstance(data['state'], str) or data['state'] not in TRANSITIONS:
         raise ValueError('Unknown ledger version, keys, or state; recover manually.')
     payload = _payload(data['payload'])
+    if data['version'] != _payload_version(payload):
+        raise ValueError('Ledger version does not match its frozen payload; recover manually.')
+    if payload.get('mode') == 'local_only':
+        if data['state'] in {'uploaded', 'uploaded_unverified', 'verified'} or data['destinations'] or data['readbacks']:
+            raise ValueError('Local-only runs cannot contain cloud states or evidence.')
+    elif data['state'] == 'local_validated':
+        raise ValueError('Cloud runs cannot claim local-only completion.')
     ids = payload['required_ids']
     if data['run_key'] != _key(payload) or data['filenames'] != {i: 'usage-' + data['run_key'][:12] + '-' + i + '.csv' for i in ids}:
         raise ValueError('Ledger original run identity was changed; recover manually.')
@@ -290,6 +315,8 @@ def _public(data):
 
 def _summary(data):
     return {'state': data['state'], 'run_key': data['run_key'],
+            'mode': data['payload'].get('mode', 'cloud'),
+            'cloud_verified': data['state'] == 'verified' and data['payload'].get('mode') != 'local_only',
             'required_count': len(data['payload']['required_ids']),
             'artifact_count': len(data['artifacts']), 'destination_count': len(data['destinations']),
             'readback_count': len(data['readbacks']), 'pending_count': len(data['evidence'].get('pending_ids', [])),
@@ -313,10 +340,12 @@ def init(directory, payload, account_lock_dir=None):
                 raise ValueError('Resume must use the frozen account reservation directory.')
             if data['state'] == 'verified':
                 _gate(data, verified=True)
+            elif data['state'] == 'local_validated':
+                _gate(data)
         else:
             run_key = _key(payload)
             # Generate names once. Resume reads these names; it never renames files.
-            data = dict(version=VERSION, run_key=run_key, payload=payload, account_lock_dir=str(accounts), filenames={i: 'usage-' + run_key[:12] + '-' + i + '.csv' for i in payload['required_ids']}, state='prepared', evidence={'pending_ids': []}, artifacts={}, destinations={}, readbacks={})
+            data = dict(version=_payload_version(payload), run_key=run_key, payload=payload, account_lock_dir=str(accounts), filenames={i: 'usage-' + run_key[:12] + '-' + i + '.csv' for i in payload['required_ids']}, state='prepared', evidence={'pending_ids': []}, artifacts={}, destinations={}, readbacks={})
             _atomic(root, data)
         return _public(data)
 
@@ -332,6 +361,8 @@ def read_private(directory):
         data = _read(root)
         if data['state'] == 'verified':
             _gate(data, verified=True)
+        elif data['state'] == 'local_validated':
+            _gate(data)
         return data
 
 
@@ -352,13 +383,21 @@ def _artifact(data, file_id):
 
 
 def _destination(data, file_id):
+    _cloud_only(data)
     record = data['destinations'].get(file_id)
     if not record or record['identity'] != data['payload']['destination_id'] or record['confirmed'] is not True:
         raise ValueError('Confirm the explicit configured destination identity for every file.')
     _stable_target(record['url'])
 
 
+def _cloud_only(data):
+    if data['payload'].get('mode') == 'local_only':
+        raise ValueError('Local-only runs prohibit cloud upload, destination and readback operations.')
+
+
 def _gate(data, uploaded=False, verified=False):
+    if uploaded or verified:
+        _cloud_only(data)
     _source_gate(data)
     if data['evidence'].get('pending_ids'):
         raise ValueError('Pending downloads remain; do not proceed.')
@@ -387,6 +426,10 @@ def advance(directory, state, evidence=None):
         data = _read(root)
         if state not in TRANSITIONS or state not in TRANSITIONS[data['state']]:
             raise ValueError('Invalid state transition; use the documented execution sequence.')
+        if state in {'uploaded', 'uploaded_unverified', 'verified'}:
+            _cloud_only(data)
+        if state == 'local_validated' and data['payload'].get('mode') != 'local_only':
+            raise ValueError('Only local_only runs can complete as local_validated.')
         evidence = {} if evidence is None else evidence
         _evidence(evidence, data['payload']['required_ids'])
         if 'request_attempted_at' in evidence and state != 'request_attempted':
@@ -420,7 +463,7 @@ def advance(directory, state, evidence=None):
             _reservation(data, 'check', root)
         if state == 'blocked_by_pending' and not data['evidence'].get('pending_ids'):
             raise ValueError('Record the pending required file IDs.')
-        if state in {'validated', 'uploaded', 'uploaded_unverified', 'verified'}:
+        if state in {'validated', 'local_validated', 'uploaded', 'uploaded_unverified', 'verified'}:
             _gate(data, uploaded=state in {'uploaded', 'uploaded_unverified'}, verified=state == 'verified')
         data['state'] = state
         _atomic(root, data)
@@ -451,6 +494,7 @@ def record_destination(directory, file_id, identity, url, confirmed):
     root = _root(directory)
     with _lock(root):
         data = _read(root)
+        _cloud_only(data)
         _id(data, file_id)
         if data['state'] not in {'validated', 'uploaded', 'uploaded_unverified'}:
             raise ValueError('Record destination observations only after validation and before verification.')
@@ -475,6 +519,7 @@ def record_readback(directory, file_id, path):
     root = _root(directory)
     with _lock(root):
         data = _read(root)
+        _cloud_only(data)
         _id(data, file_id)
         if data['state'] not in {'validated', 'uploaded', 'uploaded_unverified'}:
             raise ValueError('Record readback only after validation and before verification.')
@@ -494,9 +539,15 @@ def main(argv=None):
     commands = parser.add_subparsers(dest='command', required=True)
     create = commands.add_parser('init')
     create.add_argument('--account-lock-dir', help='Frozen shared private reservations; default sibling .accounts')
-    for name in sorted(PAYLOAD_KEYS - {'required_ids', 'upload_mode'}):
+    for name in sorted(PAYLOAD_KEYS - {'required_ids', 'upload_mode', 'enterprise', 'destination_id'}):
         create.add_argument('--' + name.replace('_', '-'), required=True)
-    create.add_argument('--upload-mode', choices=['archive', 'replace'], default='archive')
+    create.add_argument('--mode', choices=['cloud', 'local_only'], default='cloud')
+    create.add_argument('--destination-id')
+    create.add_argument('--deployment', choices=DEPLOYMENTS)
+    targets = create.add_mutually_exclusive_group(required=True)
+    targets.add_argument('--enterprise')
+    targets.add_argument('--organization')
+    create.add_argument('--upload-mode', choices=['archive', 'replace'], help='Cloud only; defaults to archive')
     create.add_argument('--required-id', dest='required_ids', action='append', required=True)
     commands.add_parser('show')
     step = commands.add_parser('advance')
@@ -516,7 +567,20 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.command == 'init':
-            result = init(args.state_dir, {key: getattr(args, key) for key in PAYLOAD_KEYS}, args.account_lock_dir)
+            payload = {key: getattr(args, key) for key in PAYLOAD_KEYS - {'enterprise', 'destination_id', 'upload_mode'}}
+            if args.mode == 'local_only':
+                if args.destination_id is not None or args.upload_mode is not None:
+                    raise ValueError('local_only: Omit destination-id and upload-mode entirely.')
+                payload['mode'] = 'local_only'
+            else:
+                payload.update(destination_id=args.destination_id, upload_mode=args.upload_mode or 'archive')
+            if args.deployment is not None:
+                payload['deployment'] = args.deployment
+            elif args.organization is not None:
+                raise ValueError('Organization initialization requires explicit deployment.')
+            selected = 'organization' if args.organization is not None else 'enterprise'
+            payload[selected] = getattr(args, selected)
+            result = init(args.state_dir, payload, args.account_lock_dir)
         elif args.command == 'show':
             result = show(args.state_dir)
         elif args.command == 'advance':

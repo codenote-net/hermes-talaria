@@ -1,15 +1,81 @@
-# Local execution ledger (schema version 1)
+# Local execution ledger (schema version 1, version 2 and version 3)
 
 The ledger records operator observations, not browser or cloud API proof. It never
 requests a report, reads mail, uploads, or downloads anything itself. Full billing
 page URLs (including query tabs), report links, signed URLs, and email bodies stay
 in private configuration/browser context, never in ledger evidence.
 
+## Deployment, payload and legacy compatibility
+
+Configuration remains version 1, independently of the ledger version. New
+Enterprise Cloud and Organization runs should use explicit `deployment`:
+`enterprise_cloud` requires only `enterprise`; `organization` requires only
+`organization`. The selected slug uses letters/digits and internal hyphens;
+the unused slug key is prohibited even when null. New cloud ledgers are version 2.
+
+Common cloud payload keys are exactly `run_id`, `github_account`, `page`, `kind`,
+`start_date`, `end_date`, `destination_id`, `upload_mode`, and `required_ids`.
+Version 2 adds `deployment` and exactly its selected slug key. Version 1 adds
+only `enterprise`, with no `deployment`. The Python `init` API accepts both
+shapes; all other keys are rejected. All fields except the unique nonempty
+`required_ids` array are bounded nonempty strings. Dates and page/kind pairing
+remain unchanged. Do not add unused null keys to a Python or CLI payload.
+
+CLI: `init --deployment organization --organization example-org` creates
+version 2; `init --deployment enterprise_cloud --enterprise example-enterprise`
+also creates version 2. `--enterprise` and `--organization` are mutually
+exclusive and must match deployment. Organization requires explicit deployment.
+The old `init --enterprise example-enterprise` command without `--deployment`
+and the old Python payload remain version 1 for legacy compatibility.
+
+Read/resume a legacy ledger as Enterprise Cloud without injecting deployment
+into its payload or migrating its version, hash, filenames or reservation.
+The canonical payload SHA256 algorithm and filename derivation stay unchanged.
+Changing target or deployment requires a new run, not edited ledger/config.
+The shared reservation filename still depends only on `github_account`, never
+deployment/slug. All Enterprise and Organization runs for the same account
+must use the same spelling and reservation directory across both versions.
+Console summaries never expose organization/enterprise identifiers.
+
+## Explicit local-only mode
+
+Configuration version 1 adds top-level `mode: local_only` (default: `cloud`).
+Omit both `destination` and `upload`, even null/empty mappings. Local-only is not
+a storage provider and does not create a fake cloud destination. The default
+cloud configuration still requires a destination. Obtain user approval before
+changing mode, and use a new run rather than altering a frozen payload.
+
+Local-only ledger version 3 has exactly these payload keys: `mode` (only
+`local_only`), `run_id`, `github_account`, `deployment`, exactly its selected
+`enterprise` or `organization` slug, `page`, `kind`, `start_date`, `end_date`, and
+`required_ids`. It prohibits `destination_id` and `upload_mode`, even null.
+Explicit deployment is mandatory. CLI `init --mode local_only` accepts no
+`--destination-id` or `--upload-mode`. Default/explicit `--mode cloud` retains
+the old version 1/2 payload shapes; no mode key is injected into cloud payloads.
+Old payload/hash/filenames and on-disk bytes remain unchanged on read/resume.
+
+Reservation, request acceptance, user_link/browser_mail, download, pending and
+CSV gates are identical in both modes. Share the same account reservation root
+across modes as well as deployments. After registering every original, advance
+to `validated`, then `local_validated`. This local-only terminal state rechecks
+source evidence, all original bytes and CSV validity, and no pending IDs/partial
+files; `show` and resumed `init` recheck it too. Cloud runs cannot use this state.
+Do not call record-destination, record-readback, or advance uploaded,
+uploaded_unverified or verified in local-only mode: these operations are rejected,
+as are persisted cloud states/evidence in a local ledger. The upload adapter
+rejects either local-only configuration or a local-only ledger before remote calls.
+
+Console summaries include `mode` and `cloud_verified`; local-only always reports
+`cloud_verified=false`. Report cloud storage as out of scope, not verified.
+Local validation does not establish browser E2E, email verification, every-day
+coverage, or finalized billing. With user_link, preserve
+`user_link=true, notification_verified=false` even after an accepted request.
+
 ## Executable synthetic smoke test
 
-Run from this repository root. This exercises only local CSV validation and
-readback comparison; the synthetic destination is **not** a cloud upload claim.
-All identifiers and records below are synthetic. Nothing contacts GitHub or S3.
+Run from this repository root. This exercises only local CSV validation with no
+destination or readback. All identifiers and records below are synthetic.
+Nothing contacts GitHub or cloud storage; it is not real browser evidence.
 
 ```bash
 set -euo pipefail
@@ -19,9 +85,9 @@ export DEMO="$(mktemp -d "${TMPDIR:-/tmp}/usage-ledger.XXXXXXXX")"
 export STATE="$DEMO/run"
 python3 "$SCRIPTS/run_state.py" --state-dir "$STATE" init \
   --run-id synthetic-january --github-account synthetic-account \
-  --enterprise synthetic-enterprise --page usage --kind detailed \
+  --deployment organization --organization example-org --page usage --kind detailed \
   --start-date 2026-01-01 --end-date 2026-01-31 \
-  --destination-id synthetic-destination --upload-mode archive --required-id first
+  --mode local_only --required-id first
 # Python integration can use generated names without printing them.
 PYTHONPATH="$SCRIPTS" python3 - <<'PY'
 import csv, os
@@ -35,25 +101,19 @@ with original.open('w', newline='') as stream:
     writer.writerow(['date','product','sku','quantity','gross_amount','net_amount','organization','repository','username','workflow_path'])
     writer.writerow(['2026-01-03','Actions','synthetic-sku','1','1','1','synthetic-org','synthetic-repo','synthetic-user','.github/workflows/synthetic.yml'])
 original.chmod(0o600)
-readback = base / 'readback.csv'
-readback.write_bytes(original.read_bytes())
-readback.chmod(0o600)
+
 # Local smoke test only: these booleans represent synthetic observations.
 run_state.advance(os.environ['STATE'], 'downloaded', {'user_link': True, 'notification_verified': False, 'source_correspondence': True})
 run_state.register_artifact(os.environ['STATE'], 'first', original)
 PY
 python3 "$SCRIPTS/run_state.py" --state-dir "$STATE" advance validated
-python3 "$SCRIPTS/run_state.py" --state-dir "$STATE" record-destination first \
-  --identity synthetic-destination --url synthetic-s3:reports/january.csv --confirmed
-python3 "$SCRIPTS/run_state.py" --state-dir "$STATE" advance uploaded
-python3 "$SCRIPTS/run_state.py" --state-dir "$STATE" record-readback first "$DEMO/readback.csv"
-python3 "$SCRIPTS/run_state.py" --state-dir "$STATE" advance verified
+python3 "$SCRIPTS/run_state.py" --state-dir "$STATE" advance local_validated
 python3 "$SCRIPTS/run_state.py" --state-dir "$STATE" show
 # Temporary private data remains at $DEMO; remove it when no longer needed.
 ```
 
 Successful console output contains only state, run SHA256, counts, artifact hashes
-and `mail_verified`. It contains no account, enterprise, run ID, file IDs,
+and `mail_verified`, `mode`, `cloud_verified`. It contains no account, enterprise, run ID, file IDs,
 generated names, paths, destination identity, or cloud target.
 
 ## Real browser request route (operator-controlled)
@@ -61,7 +121,7 @@ generated names, paths, destination identity, or cloud target.
 Create a **new** run with the init command above, using the operator-confirmed
 logged-in GitHub account and actual private configuration. `page=usage` pairs
 with `detailed` or `summarized`; `page=ai_usage` pairs only with `kind=ai_usage`.
-Use the exact confirmed account spelling consistently across all enterprise runs.
+Use the exact confirmed account spelling consistently across all Enterprise and Organization runs.
 The account key is an identity, not a token or credential.
 
 All runs for the account must use one shared account reservation directory. The
@@ -111,7 +171,10 @@ python3 "$SCRIPTS/run_state.py" --state-dir "$STATE" advance downloaded \
 
 This releases the account reservation only after persisting the downloaded state.
 Register every completed original with `register-artifact FILE_ID PRIVATE_FILE`,
-then `advance validated`. Originals and containing directories must be private
+then `advance validated`; for local-only finish with `advance local_validated`.
+For user_link delivery after a request, use the downloaded evidence example below
+with `notification_verified=false`, not the browser-mail example above.
+Originals and containing directories must be private
 (0600 files, 0700 directories) outside Git. Use `show()` in Python for the stable
 names, and do not rename on resume.
 
@@ -160,15 +223,18 @@ that exact owner reservation only after confirming the persisted evidence.
 
 ## Destination and readback contract
 
-The payload requires `upload_mode=archive|replace` and includes it in the run hash.
+This section applies only to cloud mode. Skip it entirely for local-only.
+The cloud payload requires `upload_mode=archive|replace` and includes it in the run hash.
 CLI `init --upload-mode` defaults to archive; resume must keep the original mode.
 For rclone, freeze `destination_id` as
 `upload_report.destination_identity(normalized_destination)` when initializing.
 `upload_report.transfer(..., readback_dir, state_dir, replace_target=None)` reads
 that private ledger and requires validated/uploaded/uploaded_unverified state,
-no pending IDs, matching page/kind/dates, frozen destination and mode, and the
+no pending IDs, matching deployment/slug and page/kind/dates, frozen destination and mode, and the
 exact registered original bytes/path plus generated filename. It never updates
-the ledger. Changing archive to replace requires a new run, not edited config.
+the ledger. Legacy payloads are interpreted as Enterprise Cloud for the target
+gate without mutation. Target mismatch fails before any remote call. Changing
+archive to replace requires a new run, not edited config.
 
 Actually upload every validated original through the configured cloud integration,
 then record its **exact** stable identity using `record-destination FILE_ID

@@ -2,6 +2,41 @@
 
 This guide defines a procedural contract, not a record of successful retrieval. Do not include real accounts or recipients in shared examples or evidence.
 
+## Deployment and target matching
+
+Support Enterprise Cloud (`enterprise_cloud`, `enterprise`) and Organization
+(`organization`, `organization`). Use exactly the selected slug key; prohibit
+the other key even when null. Configuration remains version 1. Validate every
+nonnull page URL against HTTPS github.com (no credentials; port absent or 443)
+and a matching billing entrypoint or selected report path. Enterprise accepts
+`/enterprises/<slug>/billing` and the legacy `/enterprises/<slug>/settings/billing`;
+Organization accepts `/organizations/<slug>/settings/billing`. Each base accepts
+an optional trailing slash or `/<page>` with an optional trailing slash. Other
+subpages, targets and extra path segments are rejected. Preserve its query literally.
+Never generate URLs, infer numeric filters, or open unselected pages.
+A billing entrypoint is an overview, not report evidence. Follow the current
+visible link for the configured `usage` or `ai_usage` page, then verify the
+resulting URL, target, heading and selected filters. Preserve the configured
+URL unchanged; do not append guessed paths or copy numeric filters between
+routes. Stop if the selected report is unavailable or the target changes.
+
+In the procedure below, every Enterprise matching check also applies to the
+selected Organization: URL, screen, request, individual notification and source
+correspondence must agree. CSV structure alone does not prove target identity.
+Freeze deployment and selected slug in new cloud version 2 or local-only version 3 ledgers. Resume legacy
+enterprise-only version 1 ledgers unchanged; never migrate their hashes/names.
+Serialize the exact same `github_account` across both deployments and all slugs,
+using one shared reservation directory. A pending Enterprise request blocks an
+Organization request and vice versa. The primary email check remains mandatory.
+
+With approved `mode: local_only`, omit cloud destination/upload configuration and
+initialize using `--mode local_only`. Keep every request and native-download gate
+below, including shared account reservations across cloud and local-only runs.
+After registering all originals and `advance validated`, finish with
+`advance local_validated`; cloud preflight/upload/readback are out of scope.
+Report `cloud_verified=false`. `user_link` does not verify email: record
+`user_link=true, notification_verified=false`, including after an accepted request.
+
 ## 1. Browser capabilities and the current screen
 
 Check the actual tool schema or CLI help for available navigation, label/role references, screenshots, destination selection, and download-event waiting. No particular browser product is required. If capabilities are insufficient, request approval or stop; do not substitute simulated HTTP retrieval.
@@ -23,9 +58,9 @@ GitHub requests, email links, user-provided links, and CSV downloads must use th
 ## 2. Freeze the run and serialize requests
 
 - Open the full selected-page URL exactly as configured. Preserve the query; do not interpret or construct numeric parameters. `report.page` is a single value, `usage` or `ai_usage`: one page per run. Page arrays are not allowed in configuration. If both are needed, use separate runs executed serially for the same account. Never open unselected pages.
-- Freeze the run ID, requested start and end dates, UTC boundaries, local reference date and timezone, page, kind, expected Enterprise, filenames, request status, and request-attempt time in a restricted private ledger. Do not recalculate relative months on resume.
-- Serialize requests by account across all Enterprises and report kinds. Other processes/runs for the same account must not request concurrently. If an existing request is pending, stop new requests and investigate the original run. Lock contention does not mean retrieval succeeded.
-- Match the signed-in GitHub account and Enterprise against both the URL and screen. Hand login/SSO/MFA/CAPTCHA barriers to the user; do not bypass them. Do not read authentication secrets.
+- Freeze the run ID, requested start and end dates, UTC boundaries, local reference date and timezone, page, kind, deployment and expected Enterprise or Organization, filenames, request status, and request-attempt time in a restricted private ledger. Do not recalculate relative months on resume.
+- Serialize requests by account across all Enterprises, Organizations and report kinds. Other processes/runs for the same account must not request concurrently. If an existing request is pending, stop new requests and investigate the original run. Lock contention does not mean retrieval succeeded.
+- Match the signed-in GitHub account and selected Enterprise or Organization against both the URL and screen. Hand login/SSO/MFA/CAPTCHA barriers to the user; do not bypass them. Do not read authentication secrets.
 
 ## 3. Read back kind, period, and recipient
 
