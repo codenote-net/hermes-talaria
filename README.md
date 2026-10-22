@@ -141,6 +141,26 @@ mail, pending requests, incomplete uploads, and unverified read-backs are not su
 See the [manual validation checklist](skills/ht-github-usage-sync/references/manual-validation.md)
 for live-browser gates, which are separate from synthetic local tests.
 
+## GitHub issue rollout
+
+`/ht-github-issue-rollout` scans every visible repository in an organization, or every
+organization and repository in an enterprise, assesses a shared request, and creates
+an approved native epic/sub-issue hierarchy. Full administrative coverage must be
+verified separately from API pagination before claiming an all-repositories scan.
+
+Provide an organization repositories URL or enterprise organizations URL, applicability
+criteria, and approved tracking repositories. Not-applicable repositories receive no
+issue by default; explicit opt-in creates clearly marked non-remediation issues.
+Unknown applicability and inaccessible repositories are reported separately.
+
+The documented native API requires parent and child repositories to have the same
+owner. For an enterprise-wide native tree, the skill offers centralized tracking
+issues in one approved repository; it never silently substitutes Markdown links or
+relocates issues. Native child/depth limits and destination audiences are checked
+before writes. The bundled Python/`gh` helper is read-only; assessment, approval,
+creation and recovery are agent-driven procedures. See the
+[skill](skills/ht-github-issue-rollout/SKILL.md) for the workflow and tests.
+
 ## License
 
 [MIT](LICENSE)
