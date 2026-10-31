@@ -161,6 +161,25 @@ before writes. The bundled Python/`gh` helper is read-only; assessment, approval
 creation and recovery are agent-driven procedures. See the
 [skill](skills/ht-github-issue-rollout/SKILL.md) for the workflow and tests.
 
+## Conditional PR approval
+
+`/ht-pr-approve https://github.com/OWNER/REPO/pull/123 --condition "No P0 findings"`
+runs three Claude slash-command reviews and a Codex review against pinned live
+head/base commits in an automatically cleaned temporary detached worktree. Normal
+authenticated CLIs are used; no container or separate read-only credential is required.
+The worktree is not a security boundary: reviewers retain host tools and credentials.
+The runner records raw results and per-reviewer exits but never submits approvals.
+The parent agent must verify all four substantive reviews, freshness, duplicate
+approval state, and the explicit policy before a separate commit-bound API approval.
+The condition is agent input, not a standalone CLI flag. A no-P0 policy permits
+P1 findings and discloses them rather than silently applying a stricter threshold.
+
+Approval is bound to the reviewed commit and read back from GitHub. Incomplete
+reviews, uncertain severity, stale head/base evidence, and self-authored PRs block
+approval. The workflow neither fixes findings nor merges PRs. See the
+[skill](skills/ht-pr-approve/SKILL.md) and its
+[validation matrix](skills/ht-pr-approve/references/validation.md).
+
 ## License
 
 [MIT](LICENSE)
