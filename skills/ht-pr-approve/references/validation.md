@@ -5,6 +5,7 @@ submission remain separate. A local fixture result is not a real model review.
 
 | Case | Required outcome |
 | --- | --- |
+| `github-operations` skill is absent | Follow this skill's GitHub procedures; do not block on a separate skill |
 | Missing policy or ambiguous threshold | Ask; no submission |
 | No P0, accepted P1, policy is no P0 | PASS; disclose P1 |
 | Accepted P0, policy is no P0 | FAIL; no GitHub write |

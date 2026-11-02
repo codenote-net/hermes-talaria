@@ -7,7 +7,8 @@ description: "Use when conditionally approving GitHub pull requests. Run four ex
 
 Use this skill to review a requested pull request and approve it only when the user's
 explicit conditions are met. This is an agent-driven workflow, not a keyword scanner.
-Load `ht-pr-multi-review` and `github-operations` before proceeding.
+Load `ht-pr-multi-review` before proceeding. Follow the GitHub procedures in this
+skill directly; no separate GitHub operations skill is required.
 
 ## Inputs and authorization
 
