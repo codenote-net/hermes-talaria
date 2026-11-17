@@ -29,6 +29,13 @@ interpretation. For example, "No P0 findings" allows P1, P2, and P3 findings; do
 silently strengthen it to "No P0/P1". Ask about ambiguous or unsupported conditions.
 Additional conditions such as green CI are required only when requested, not assumed.
 
+An explicitly supplied exact custom approval body overrides only the public body,
+not the review, policy, freshness, or verification gates. Preserve it exactly,
+including Unicode and whitespace; do not append explanations or a newline. Record
+the full policy, reviewed pair, evidence, findings, and rationale privately when
+using a custom body. Without an explicit custom body, retain the detailed English
+body in section 4. Body selection is agent input, not a runner CLI option.
+
 Default to one PR. For an explicitly requested batch, freeze the exact URL list and
 policy, paginate discovery, deduplicate URLs, and record a separate outcome per PR.
 A request to discover PRs awaiting the authenticated user's review does not by itself
@@ -138,13 +145,22 @@ locally and stop without a GitHub write. Do not alter the PR to make the policy 
 
 ## 4. Submit exactly one commit-bound approval
 
-Prepare an English approval body containing:
+By default, prepare a detailed English approval body containing:
 
 - The literal policy and its interpretation.
 - Reviewed head and base SHAs, review methods, and completion status.
 - Accepted finding counts by severity and material non-blocking findings.
 - An honest distinction between static inspection, executed tests, and unverified checks.
 - A concise policy-pass rationale; never claim "no issues" when lower-priority issues exist.
+
+If the caller explicitly supplies an exact custom body (for example `👌`), use that
+body instead and keep every item above in the private ledger/report. Disclose
+non-blocking findings privately rather than adding a separate public comment.
+For such bodies, policy equivalence must be established from the saved local ledger
+binding the exact review ID to evidence, policy, and reviewed head/base, not inferred
+from body text alone. Never reuse a historic approval that is no longer effective
+after a later changes-requested or dismissed decision; ambiguous state blocks reuse
+and blind duplicate submission.
 
 Do not publish raw reports, local paths, credentials, or unrelated private information.
 Immediately before writing, refresh authenticated identity, PR state/draft/author,
@@ -161,7 +177,7 @@ serializer (never shell-interpolate the review body):
 {
   "commit_id": "REVIEWED_HEAD_SHA",
   "event": "APPROVE",
-  "body": "ENGLISH_APPROVAL_BODY"
+  "body": "SELECTED_EXACT_APPROVAL_BODY"
 }
 ```
 

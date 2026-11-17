@@ -180,6 +180,28 @@ approval. The workflow neither fixes findings nor merges PRs. See the
 [skill](skills/ht-pr-approve/SKILL.md) and its
 [validation matrix](skills/ht-pr-approve/references/validation.md).
 
+## Requested-review approval loop
+
+`/ht-pr-approve-loop https://github.com/OWNER/REPO` authorizes one conditional batch
+over a frozen oldest-first snapshot in that explicit repository. An exact pulls
+search URL with `is:pr state:open user-review-requested:@me sort:created-asc` is also
+accepted. Only current direct user requests qualify; team-only requests do not.
+
+The read-only discovery helper paginates GitHub search and rejects incomplete or
+1000-result-capped searches. The agent reuses `ht-pr-approve`'s four-review runner,
+adjudicates all findings, and approves only complete no-P0 reviews with body exactly
+`👌`. P1/P2/P3 findings and detailed evidence stay private, outside Git. The existing
+single-PR skill retains its detailed English body unless an exact custom body is
+explicitly supplied. Reviewers retain host access; a worktree is not a security boundary.
+
+The loop rechecks identity, direct requests, live eligibility, effective approval
+state, and the reviewed head/base before submission, then reads the exact review
+back. It never fixes code, posts a separate comment, merges, rediscovers new PRs,
+or blindly retries ambiguous submissions. See the
+[skill](skills/ht-pr-approve-loop/SKILL.md) and
+[validation matrix](skills/ht-pr-approve-loop/references/validation.md).
+Local helper tests are fixture-only, not verification of live agent approvals.
+
 ## License
 
 [MIT](LICENSE)
