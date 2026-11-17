@@ -26,6 +26,14 @@ submission remain separate. A local fixture result is not a real model review.
 | POST times out after acceptance | Reconcile exact reviews before retry |
 | Read-back body, reviewer, state, or commit differs | UNKNOWN; no success claim |
 | Head changes between POST and read-back | Report only old-commit approval; no second submission |
+| No custom body supplied | Retain the detailed English policy/evidence/counts/rationale body |
+| Explicit exact custom body supplied | Preserve exact body; retain full evidence and disclosures privately; no separate comment |
+| Custom body is exactly `👌` | Submit only that character, with no newline or suffix; exact read-back equality |
+| Same-head emoji approval but no policy ledger binding | Do not infer equivalence or blindly duplicate |
+| Historic approval followed by effective changes requested or dismissal | Do not report already-approved based on historic state |
+
+These body-selection and idempotency cases are agent workflow acceptance checks,
+not programmatically exercised by the runner's fixture tests.
 
 ## Local orchestration tests
 
