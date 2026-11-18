@@ -112,7 +112,7 @@ def review(repo, url, timeout=1800, head=None, base=None):
                      "claude-opus-5-5", "--effort", "high", "--no-session-persistence",
                      f"/{name} {url}\nReview only head {head} against base {base}. Do not publish reviews, comments, approvals, or other remote writes. Do not modify files."])
                     for name in ("review", "security-review", "code-review")]
-        commands.append(("codex", ["codex", "--yolo", "review", "-c", 'model="gpt-6.1-sol"',
+        commands.append(("codex", ["codex", "--yolo", "review", "-c", 'model="gpt-6.2-sol"',
                          "-c", 'model_reasoning_effort="high"', "-c", 'service_tier="priority"',
                          "--base", base]))
         report["merge_base"] = git(worktree, "merge-base", base, head)

@@ -118,7 +118,7 @@ print('FIXTURE ONLY: reviewer subprocess executed')
             self.assertTrue(item["args"][-1].startswith(f"/{slash} {URL}\n"))
             self.assertIn(self.head, item["args"][-1])
             self.assertIn(self.base, item["args"][-1])
-        self.assertEqual(calls[-1]["args"], ["--yolo", "review", "-c", 'model="gpt-6.1-sol"', "-c", 'model_reasoning_effort="high"', "-c", 'service_tier="priority"', "--base", self.base])
+        self.assertEqual(calls[-1]["args"], ["--yolo", "review", "-c", 'model="gpt-6.2-sol"', "-c", 'model_reasoning_effort="high"', "-c", 'service_tier="priority"', "--base", self.base])
         for item in calls:
             self.assertEqual(item["head"], self.head)
             self.assertEqual(item["source"], "head = 2\n")
