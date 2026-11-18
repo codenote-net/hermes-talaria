@@ -85,7 +85,7 @@ The four sequential commands use the same models and flags as `ht-pr-multi-revie
 - Claude: `claude --permission-mode auto -p --model claude-opus-5-5 --effort high
   --no-session-persistence`, once for `/review URL`, `/security-review URL`, and
   `/code-review URL`. Each prompt adds pinned head/base and no-publication instructions.
-- Codex: `codex --yolo review -c 'model="gpt-6.1-sol"'
+- Codex: `codex --yolo review -c 'model="gpt-6.2-sol"'
   -c 'model_reasoning_effort="high"' -c 'service_tier="priority"' --base BASE_SHA`.
 
 The runner records raw combined stdout/stderr, exact commands, individual exit codes,
