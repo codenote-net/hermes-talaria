@@ -1,0 +1,7 @@
+{
+  "url": "https://www.shopify.com/",
+  "max_depth": 2,
+  "max_targets": 50,
+  "formats": ["json", "csv", "mermaid"],
+  "diagram_depth": 2
+}
