@@ -67,6 +67,15 @@ Set `HERMES_DIR` to install into a location other than `~/.hermes`. You can also
 
 Never commit secrets to this repository.
 
+## Public subprocessor dependency mapping
+
+Run `/ht-service-dependency-map https://www.shopify.com/` to trace publicly
+documented personal-data subprocessors. Ask for a different depth or for JSON,
+CSV, and Mermaid together. The default is JSON, up to two hops and 50 research
+targets. Results include citations and distinguish unexpanded or undisclosed
+branches from explicit absence. They do not establish actual customer data flow
+or inventory every vendor the service uses. The exporter requires Python 3.
+
 ## Japan business-trip hotel research
 
 `/ht-japan-hotel-research` searches hotel official sites in Japan, Yahoo! Travel, Rakuten
